@@ -11,7 +11,6 @@ import {
 import appCss from "../styles.css?url";
 import { Header } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
-import { Toaster } from "@/components/ui/sonner";
 
 function NotFoundComponent() {
   return (
@@ -79,9 +78,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "description", content: "LEAFVA delivers premium IT support, AI services, networking, system administration and application design for Ontario businesses." },
       { name: "author", content: "LEAFVA" },
       { property: "og:title", content: "LEAFVA — IT Intelligence, Powered by Nature and Technology" },
-      { property: "og:description", content: "Premium Ontario-registered IT services with an AI-driven intake assistant." },
+      { property: "og:description", content: "LEAFVA delivers premium IT support, AI services, networking, system administration and application design for Ontario businesses." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "LEAFVA — IT Intelligence, Powered by Nature and Technology" },
+      { name: "twitter:description", content: "LEAFVA delivers premium IT support, AI services, networking, system administration and application design for Ontario businesses." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/083d84a1-d2e0-472f-ad2e-27e7e44b0cb6/id-preview-c46392a3--fd1e6cdf-9da6-44f8-adac-9ad98f317df1.lovable.app-1779997424596.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/083d84a1-d2e0-472f-ad2e-27e7e44b0cb6/id-preview-c46392a3--fd1e6cdf-9da6-44f8-adac-9ad98f317df1.lovable.app-1779997424596.png" },
     ],
     links: [{ rel: "stylesheet", href: appCss }],
   }),
@@ -117,7 +120,6 @@ function RootComponent() {
         </main>
         <Footer />
       </div>
-      <Toaster theme="dark" position="bottom-right" richColors />
     </QueryClientProvider>
   );
 }
