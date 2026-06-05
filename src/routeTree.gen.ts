@@ -26,6 +26,7 @@ import { Route as TicketsTicketIdRouteImport } from './routes/tickets.$ticketId'
 import { Route as ApiAdminSettingsRouteImport } from './routes/api/admin/settings'
 import { Route as ApiAiClassifyRouteImport } from './routes/api/ai/classify'
 import { Route as ApiAiReplyRouteImport } from './routes/api/ai/reply'
+import { Route as StaffRouteImport } from './routes/staff'
 
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
@@ -112,6 +113,11 @@ const ApiAiReplyRoute = ApiAiReplyRouteImport.update({
   path: '/api/ai/reply',
   getParentRoute: () => rootRouteImport,
 } as any)
+const StaffRoute = StaffRouteImport.update({
+  id: '/staff',
+  path: '/staff',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -131,6 +137,7 @@ export interface FileRoutesByFullPath {
   '/api/admin/settings': typeof ApiAdminSettingsRoute
   '/api/ai/classify': typeof ApiAiClassifyRoute
   '/api/ai/reply': typeof ApiAiReplyRoute
+  '/staff': typeof StaffRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -150,6 +157,7 @@ export interface FileRoutesByTo {
   '/api/admin/settings': typeof ApiAdminSettingsRoute
   '/api/ai/classify': typeof ApiAiClassifyRoute
   '/api/ai/reply': typeof ApiAiReplyRoute
+  '/staff': typeof StaffRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -170,6 +178,7 @@ export interface FileRoutesById {
   '/api/admin/settings': typeof ApiAdminSettingsRoute
   '/api/ai/classify': typeof ApiAiClassifyRoute
   '/api/ai/reply': typeof ApiAiReplyRoute
+  '/staff': typeof StaffRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -191,6 +200,7 @@ export interface FileRouteTypes {
     | '/api/admin/settings'
     | '/api/ai/classify'
     | '/api/ai/reply'
+    | '/staff'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -210,6 +220,7 @@ export interface FileRouteTypes {
     | '/api/admin/settings'
     | '/api/ai/classify'
     | '/api/ai/reply'
+    | '/staff'
   id:
     | '__root__'
     | '/'
@@ -229,6 +240,7 @@ export interface FileRouteTypes {
     | '/api/admin/settings'
     | '/api/ai/classify'
     | '/api/ai/reply'
+    | '/staff'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -249,6 +261,7 @@ export interface RootRouteChildren {
   ApiAdminSettingsRoute: typeof ApiAdminSettingsRoute
   ApiAiClassifyRoute: typeof ApiAiClassifyRoute
   ApiAiReplyRoute: typeof ApiAiReplyRoute
+  StaffRoute: typeof StaffRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -379,6 +392,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAdminSettingsRoute: ApiAdminSettingsRoute,
   ApiAiClassifyRoute: ApiAiClassifyRoute,
   ApiAiReplyRoute: ApiAiReplyRoute,
+  StaffRoute: StaffRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

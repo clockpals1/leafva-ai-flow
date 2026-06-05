@@ -445,7 +445,7 @@ function TicketDetailPage() {
       supabase.from("ticket_messages").select("*, author_staff:staff!ticket_messages_author_staff_id_fkey(name,avatar_url)").eq("ticket_id", ticketId).order("created_at", { ascending: true }),
       supabase.from("ticket_history").select("*, changed_by_staff:staff!ticket_history_changed_by_fkey(name)").eq("ticket_id", ticketId).order("created_at", { ascending: false }),
       supabase.from("ai_classifications").select("*").eq("ticket_id", ticketId).maybeSingle(),
-      supabase.from("staff").select("*").eq("is_active", true).order("name"),
+      supabase.from("staff").select("*").eq("is_available", true).order("name"),
     ]);
     if (tRes.error || !tRes.data) { setMissing(true); setLoading(false); return; }
     setTicket(tRes.data as TicketRow);

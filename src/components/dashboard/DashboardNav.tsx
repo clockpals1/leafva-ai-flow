@@ -1,5 +1,6 @@
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { Ticket, Settings, LogOut, Users, BarChart3 } from "lucide-react";
+import type { } from "@tanstack/react-router"; // keep type import for TS
 import { supabase } from "@/integrations/supabase/client";
 
 export interface NavUser {
@@ -14,12 +15,12 @@ interface DashboardNavProps {
 
 const LINKS = [
   { to: "/tickets", icon: Ticket, label: "Service Desk" },
+  { to: "/staff",   icon: Users,  label: "Staff" },
   { to: "/admin",   icon: Settings, label: "Settings" },
 ] as const;
 
 const COMING_SOON = [
-  { icon: Users,      label: "Staff" },
-  { icon: BarChart3,  label: "Reports" },
+  { icon: BarChart3, label: "Reports" },
 ];
 
 export function DashboardNav({ user }: DashboardNavProps) {
