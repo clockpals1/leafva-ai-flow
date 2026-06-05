@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect, useCallback, type FormEvent, type ChangeEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Session } from "@supabase/supabase-js";
-import { Loader2, Save, Eye, EyeOff, Settings, Bot, Mail, Bell, ShieldCheck, type LucideIcon } from "lucide-react";
+import { Loader2, Save, Eye, EyeOff, Settings, Bot, Mail, Bell, ShieldCheck, Server, type LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 import { DashboardNav } from "@/components/dashboard/DashboardNav";
 
@@ -25,13 +25,26 @@ type AppSetting = {
   description: string | null;
 };
 
-type Tab = "ai" | "email" | "notifications";
+type Tab = "ai" | "email" | "smtp" | "notifications";
 
 const TAB_META: { id: Tab; label: string; icon: LucideIcon }[] = [
-  { id: "ai", label: "AI Configuration", icon: Bot },
-  { id: "email", label: "Email / Resend", icon: Mail },
-  { id: "notifications", label: "Notifications", icon: Bell },
+  { id: "ai",            label: "AI",            icon: Bot },
+  { id: "email",         label: "Email / Resend", icon: Mail },
+  { id: "smtp",          label: "SMTP",           icon: Server },
+  { id: "notifications", label: "Notifications",  icon: Bell },
 ];
+
+const BOOLEAN_KEYS = new Set([
+  "notify_new_ticket", "notify_ticket_update", "notify_status_change",
+  "notify_assignment", "smtp_secure", "ai_classify_auto",
+]);
+
+const SELECT_OPTIONS: Record<string, { value: string; label: string }[]> = {
+  email_provider: [
+    { value: "resend", label: "Resend (recommended)" },
+    { value: "smtp",   label: "SMTP" },
+  ],
+};
 
 // ---------- Login form ----------
 
@@ -128,7 +141,10 @@ function SettingRow({
     }
   };
 
+  const isBoolean = BOOLEAN_KEYS.has(setting.key);
+  const selectOpts = SELECT_OPTIONS[setting.key];
   const isTextarea = setting.key === "ai_system_prompt";
+  const isConfigured = setting.is_secret && setting.value === "••••••••";
   const inputCls =
     "flex-1 rounded-lg border border-border bg-card px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-gold font-mono";
 
@@ -137,11 +153,20 @@ function SettingRow({
       <div>
         <div className="flex items-center justify-between">
           <label className="text-sm font-semibold text-foreground">{setting.label}</label>
-          {setting.is_secret && (
-            <span className="text-[10px] uppercase tracking-wider bg-gold/10 text-gold px-2 py-0.5 rounded-full">
-              Secret
-            </span>
-          )}
+          <div className="flex items-center gap-2">
+            {setting.is_secret && (
+              <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                isConfigured ? "bg-green-500/15 text-green-400" : "bg-amber-500/15 text-amber-400"
+              }`}>
+                {isConfigured ? "● Configured" : "○ Not set"}
+              </span>
+            )}
+            {dirty && (
+              <span className="text-[10px] uppercase tracking-wider bg-blue-500/15 text-blue-400 px-2 py-0.5 rounded-full">
+                unsaved
+              </span>
+            )}
+          </div>
         </div>
         {setting.description && (
           <p className="mt-0.5 text-xs text-muted-foreground">{setting.description}</p>
@@ -149,7 +174,36 @@ function SettingRow({
       </div>
 
       <div className="flex items-start gap-2">
-        {isTextarea ? (
+        {isBoolean ? (
+          <div className="flex flex-1 items-center gap-3 py-1">
+            <button
+              type="button"
+              role="switch"
+              aria-checked={draft === "true"}
+              onClick={() => handleChange(draft === "true" ? "false" : "true")}
+              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
+                draft === "true" ? "bg-green-500" : "bg-slate-600"
+              }`}
+            >
+              <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
+                draft === "true" ? "translate-x-5" : "translate-x-0"
+              }`} />
+            </button>
+            <span className={`text-sm ${draft === "true" ? "text-green-400" : "text-slate-400"}`}>
+              {draft === "true" ? "Enabled" : "Disabled"}
+            </span>
+          </div>
+        ) : selectOpts ? (
+          <select
+            value={draft}
+            onChange={(e: ChangeEvent<HTMLSelectElement>) => handleChange(e.target.value)}
+            className={`${inputCls} cursor-pointer`}
+          >
+            {selectOpts.map((opt) => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
+        ) : isTextarea ? (
           <textarea
             rows={5}
             value={draft}
@@ -163,10 +217,10 @@ function SettingRow({
             value={draft}
             onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange(e.target.value)}
             className={inputCls}
-            placeholder={setting.is_secret ? "••••••••••••••••" : "(not set)"}
+            placeholder={setting.is_secret ? (isConfigured ? "Enter new value to change…" : "(not configured)") : "(not set)"}
           />
         )}
-        {setting.is_secret && !isTextarea && (
+        {setting.is_secret && !isTextarea && !isBoolean && (
           <button
             type="button"
             onClick={() => setShow((s) => !s)}
@@ -306,7 +360,7 @@ function SettingsPanel({ session }: { session: Session }) {
           required.
         </p>
         <p>
-          Environment variables (<code>LOVABLE_API_KEY</code>, etc.) act as fallbacks when a DB value is blank.
+          Cloudflare env vars (<code>GROQ_API_KEY</code>, <code>SUPABASE_URL</code>, etc.) act as ultimate fallbacks when a DB value is blank.
         </p>
       </div>
       </div>
