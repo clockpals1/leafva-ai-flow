@@ -2,8 +2,9 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect, useCallback, type FormEvent, type ChangeEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Session } from "@supabase/supabase-js";
-import { Loader2, Save, Eye, EyeOff, LogOut, Settings, Bot, Mail, Bell, ShieldCheck, type LucideIcon } from "lucide-react";
+import { Loader2, Save, Eye, EyeOff, Settings, Bot, Mail, Bell, ShieldCheck, type LucideIcon } from "lucide-react";
 import { toast } from "sonner";
+import { DashboardNav } from "@/components/dashboard/DashboardNav";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
@@ -238,35 +239,25 @@ function SettingsPanel({ session }: { session: Session }) {
     );
   };
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-  };
-
   const tabSettings = settings.filter((s) => s.category === activeTab);
 
   return (
-    <div className="mx-auto max-w-4xl px-6 py-16">
+    <div className="flex h-screen bg-slate-950">
+      <DashboardNav user={{ email: session.user.email }} />
+      <div className="flex-1 overflow-auto">
+      <div className="mx-auto max-w-4xl px-6 py-12">
       {/* Header */}
-      <div className="flex items-center justify-between mb-10">
-        <div>
-          <div className="flex items-center gap-2">
-            <Settings className="h-4 w-4 text-gold" />
-            <span className="text-xs uppercase tracking-[0.25em] text-gold">Admin</span>
-          </div>
-          <h1 className="mt-2 font-display text-4xl font-semibold tracking-tight">
-            Settings
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Signed in as <span className="text-foreground">{session.user.email}</span>
-          </p>
-        </div>
-        <button
-          onClick={handleLogout}
-          className="inline-flex items-center gap-1.5 rounded-full border border-border px-4 py-2 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-        >
-          <LogOut className="h-3.5 w-3.5" />
-          Sign out
-        </button>
+      <div className="flex items-center gap-2 mb-8">
+        <Settings className="h-4 w-4 text-gold" />
+        <span className="text-xs uppercase tracking-[0.25em] text-gold">Settings</span>
+      </div>
+      <div className="mb-8">
+        <h1 className="font-display text-3xl font-semibold tracking-tight text-foreground">
+          Platform Settings
+        </h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Signed in as <span className="text-foreground">{session.user.email}</span>
+        </p>
       </div>
 
       {/* Tabs */}
@@ -317,6 +308,8 @@ function SettingsPanel({ session }: { session: Session }) {
         <p>
           Environment variables (<code>LOVABLE_API_KEY</code>, etc.) act as fallbacks when a DB value is blank.
         </p>
+      </div>
+      </div>
       </div>
     </div>
   );

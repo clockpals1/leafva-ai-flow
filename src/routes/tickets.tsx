@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { DashboardNav } from "@/components/dashboard/DashboardNav";
 import { useState, useEffect, useCallback } from "react";
 import {
   Search, Filter, RefreshCw, LogOut, Ticket, AlertTriangle,
@@ -6,7 +7,7 @@ import {
   Wifi, Monitor, Code2, FolderOpen, PhoneCall, MoreHorizontal,
   Circle, ArrowUpDown, Bell,
 } from "lucide-react";
-import { createClient } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 
 type TicketRow = Database["public"]["Tables"]["tickets"]["Row"] & {
@@ -165,7 +166,6 @@ function LoginGate({ onLogin }: { onLogin: () => void }) {
     e.preventDefault();
     setLoading(true);
     setError("");
-    const supabase = createClient();
     const { error: err } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (err) { setError(err.message); return; }
@@ -217,9 +217,9 @@ function LoginGate({ onLogin }: { onLogin: () => void }) {
 
 function TicketsDashboard() {
   const navigate = useNavigate();
-  const supabase = createClient();
 
   const [authed, setAuthed]         = useState<boolean | null>(null);
+  const [userEmail, setUserEmail]   = useState<string | null>(null);
   const [staff, setStaff]           = useState<StaffRow | null>(null);
   const [tickets, setTickets]       = useState<TicketRow[]>([]);
   const [loading, setLoading]       = useState(true);
@@ -234,9 +234,11 @@ function TicketsDashboard() {
     supabase.auth.getSession().then(({ data }) => {
       if (!data.session) { setAuthed(false); setLoading(false); return; }
       setAuthed(true);
+      setUserEmail(data.session.user.email ?? null);
     });
     const { data: listener } = supabase.auth.onAuthStateChange((_, session) => {
       setAuthed(!!session);
+      setUserEmail(session?.user.email ?? null);
       if (!session) setLoading(false);
     });
     return () => listener.subscription.unsubscribe();
@@ -277,10 +279,6 @@ function TicketsDashboard() {
     return () => { supabase.removeChannel(channel); };
   }, [authed, fetchTickets]);
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate({ to: "/" });
-  };
 
   // ── Derived data ─────────────────────────────────────────────────────────────
   const filtered = tickets.filter(t => {
@@ -323,36 +321,23 @@ function TicketsDashboard() {
   if (!authed) return <LoginGate onLogin={() => setAuthed(true)} />;
 
   return (
-    <div className="flex min-h-screen flex-col bg-slate-950 text-slate-100">
+    <div className="flex h-screen bg-slate-950 text-slate-100">
+      <DashboardNav user={{ name: staff?.name, email: userEmail, avatarUrl: staff?.avatar_url }} />
+
+      <div className="flex flex-1 flex-col overflow-hidden">
 
       {/* Top bar */}
-      <header className="flex h-14 items-center justify-between border-b border-slate-800/70 bg-slate-950/95 px-5 backdrop-blur">
-        <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-green-500/10 ring-1 ring-green-500/30">
-            <Ticket size={16} className="text-green-400" />
-          </div>
-          <span className="text-[11px] font-semibold tracking-widest text-green-400 uppercase">LEAFVA</span>
-          <span className="text-slate-600">/</span>
-          <span className="text-sm font-medium text-slate-200">Service Desk</span>
-        </div>
-        <div className="flex items-center gap-3">
+      <header className="flex h-14 shrink-0 items-center justify-between border-b border-slate-800/70 bg-slate-950/95 px-5 backdrop-blur">
+        <h1 className="text-sm font-semibold text-slate-200">
+          Service Desk
+          {staff && <span className="ml-2 text-[11px] font-normal capitalize text-slate-500">· {staff.role}</span>}
+        </h1>
+        <div className="flex items-center gap-2">
           <button onClick={fetchTickets} className="rounded-lg p-1.5 text-slate-500 transition hover:bg-slate-800 hover:text-slate-300" title="Refresh">
             <RefreshCw size={15} />
           </button>
-          <button className="rounded-lg p-1.5 text-slate-500 transition hover:bg-slate-800 hover:text-slate-300">
+          <button className="rounded-lg p-1.5 text-slate-500 transition hover:bg-slate-800 hover:text-slate-300" title="Notifications">
             <Bell size={15} />
-          </button>
-          {staff && (
-            <div className="flex items-center gap-2 rounded-lg border border-slate-800 bg-slate-900 px-2.5 py-1.5">
-              <StaffAvatar name={staff.name} avatarUrl={staff.avatar_url} />
-              <div className="hidden sm:block">
-                <p className="text-xs font-medium text-slate-200 leading-tight">{staff.name}</p>
-                <p className="text-[10px] capitalize text-slate-500">{staff.role}</p>
-              </div>
-            </div>
-          )}
-          <button onClick={handleLogout} className="rounded-lg p-1.5 text-slate-500 transition hover:bg-slate-800 hover:text-red-400" title="Sign out">
-            <LogOut size={15} />
           </button>
         </div>
       </header>
@@ -583,6 +568,7 @@ function TicketsDashboard() {
             </div>
           </div>
         )}
+      </div>
       </div>
     </div>
   );
