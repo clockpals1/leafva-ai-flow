@@ -27,9 +27,9 @@ You are not a generic chatbot — you are LEAFVA's front desk.`;
 /** Load AI configuration from the app_settings table, falling back to env vars. */
 async function loadAiConfig() {
   const defaults = {
-    apiKey: process.env.LOVABLE_API_KEY ?? process.env.AI_API_KEY ?? "",
-    gatewayUrl: "https://ai.gateway.lovable.dev/v1/chat/completions",
-    model: "google/gemini-2.5-flash",
+    apiKey: process.env.GROQ_API_KEY ?? process.env.AI_API_KEY ?? "",
+    gatewayUrl: "https://api.groq.com/openai/v1/chat/completions",
+    model: "llama-3.3-70b-versatile",
     systemPrompt: DEFAULT_SYSTEM_PROMPT,
   };
 

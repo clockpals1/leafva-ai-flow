@@ -30,9 +30,9 @@ binding = "ASSETS"
 #   SUPABASE_PUBLISHABLE_KEY   (anon/public key)
 #   SUPABASE_SERVICE_ROLE_KEY  (service role — server-only, never in client)
 #
-# Optional (fallback when admin settings are blank):
-#   LOVABLE_API_KEY            (AI gateway key — also configurable in /admin)
-#   AI_API_KEY                 (alias for LOVABLE_API_KEY)
+# AI (fallback when admin settings table is blank — set once, then manage via /admin):
+#   GROQ_API_KEY               (get yours free at console.groq.com)
+#   AI_API_KEY                 (generic alias — used if GROQ_API_KEY is not set)
 
 [vars]
 NODE_ENV = "production"
