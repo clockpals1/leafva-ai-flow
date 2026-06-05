@@ -37,9 +37,5 @@ binding = "ASSETS"
 [vars]
 NODE_ENV = "production"
 
-# ─── Per-environment overrides ────────────────────────────────────────────────
-[env.preview]
-name = "leafva-ai-flow-preview"
-
-[env.preview.vars]
-NODE_ENV = "development"
+# Per-environment overrides are NOT supported in Nitro-redirected wrangler configs.
+# Set preview variables via the Cloudflare dashboard (Workers → Settings → Variables).
