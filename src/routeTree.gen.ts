@@ -21,6 +21,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiTicketsRouteImport } from './routes/api/tickets'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as AdminRouteImport } from './routes/admin'
+import { Route as TicketsRouteImport } from './routes/tickets'
 import { Route as ApiAdminSettingsRouteImport } from './routes/api/admin/settings'
 
 const TermsRoute = TermsRouteImport.update({
@@ -83,6 +84,11 @@ const AdminRoute = AdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TicketsRoute = TicketsRouteImport.update({
+  id: '/tickets',
+  path: '/tickets',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAdminSettingsRoute = ApiAdminSettingsRouteImport.update({
   id: '/api/admin/settings',
   path: '/api/admin/settings',
@@ -93,6 +99,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/admin': typeof AdminRoute
+  '/tickets': typeof TicketsRoute
   '/ai-assistant': typeof AiAssistantRoute
   '/ai-disclaimer': typeof AiDisclaimerRoute
   '/contact': typeof ContactRoute
@@ -108,6 +115,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/admin': typeof AdminRoute
+  '/tickets': typeof TicketsRoute
   '/ai-assistant': typeof AiAssistantRoute
   '/ai-disclaimer': typeof AiDisclaimerRoute
   '/contact': typeof ContactRoute
@@ -124,6 +132,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/admin': typeof AdminRoute
+  '/tickets': typeof TicketsRoute
   '/ai-assistant': typeof AiAssistantRoute
   '/ai-disclaimer': typeof AiDisclaimerRoute
   '/contact': typeof ContactRoute
@@ -141,6 +150,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/admin'
+    | '/tickets'
     | '/ai-assistant'
     | '/ai-disclaimer'
     | '/contact'
@@ -156,6 +166,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/admin'
+    | '/tickets'
     | '/ai-assistant'
     | '/ai-disclaimer'
     | '/contact'
@@ -171,6 +182,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/admin'
+    | '/tickets'
     | '/ai-assistant'
     | '/ai-disclaimer'
     | '/contact'
@@ -187,6 +199,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
   AdminRoute: typeof AdminRoute
+  TicketsRoute: typeof TicketsRoute
   AiAssistantRoute: typeof AiAssistantRoute
   AiDisclaimerRoute: typeof AiDisclaimerRoute
   ContactRoute: typeof ContactRoute
@@ -271,6 +284,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AboutRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/tickets': {
+      id: '/tickets'
+      path: '/tickets'
+      fullPath: '/tickets'
+      preLoaderRoute: typeof TicketsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -299,6 +319,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
   AdminRoute: AdminRoute,
+  TicketsRoute: TicketsRoute,
   AiAssistantRoute: AiAssistantRoute,
   AiDisclaimerRoute: AiDisclaimerRoute,
   ContactRoute: ContactRoute,
