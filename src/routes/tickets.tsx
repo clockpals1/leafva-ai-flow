@@ -452,7 +452,7 @@ function TicketsDashboard() {
                   return (
                     <tr
                       key={ticket.id}
-                      onClick={() => navigate({ to: `/tickets/${ticket.id}` })}
+                      onClick={() => navigate({ to: "/tickets/$ticketId", params: { ticketId: ticket.id } })}
                       className="group cursor-pointer border-b border-slate-800/60 transition hover:bg-slate-900/60"
                     >
                       <td className="px-4 py-3.5">
@@ -532,7 +532,7 @@ function TicketsDashboard() {
                 return (
                   <div
                     key={ticket.id}
-                    onClick={() => navigate({ to: `/tickets/${ticket.id}` })}
+                    onClick={() => navigate({ to: "/tickets/$ticketId", params: { ticketId: ticket.id } })}
                     className="cursor-pointer rounded-xl border border-slate-800 bg-slate-900 p-4 transition hover:border-slate-700 active:bg-slate-800"
                   >
                     <div className="mb-2 flex items-center justify-between">

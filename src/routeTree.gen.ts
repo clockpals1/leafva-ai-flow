@@ -22,6 +22,7 @@ import { Route as ApiTicketsRouteImport } from './routes/api/tickets'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as TicketsRouteImport } from './routes/tickets'
+import { Route as TicketsTicketIdRouteImport } from './routes/tickets.$ticketId'
 import { Route as ApiAdminSettingsRouteImport } from './routes/api/admin/settings'
 
 const TermsRoute = TermsRouteImport.update({
@@ -89,6 +90,11 @@ const TicketsRoute = TicketsRouteImport.update({
   path: '/tickets',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TicketsTicketIdRoute = TicketsTicketIdRouteImport.update({
+  id: '/tickets/$ticketId',
+  path: '/tickets/$ticketId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAdminSettingsRoute = ApiAdminSettingsRouteImport.update({
   id: '/api/admin/settings',
   path: '/api/admin/settings',
@@ -100,6 +106,7 @@ export interface FileRoutesByFullPath {
   '/about': typeof AboutRoute
   '/admin': typeof AdminRoute
   '/tickets': typeof TicketsRoute
+  '/tickets/$ticketId': typeof TicketsTicketIdRoute
   '/ai-assistant': typeof AiAssistantRoute
   '/ai-disclaimer': typeof AiDisclaimerRoute
   '/contact': typeof ContactRoute
@@ -116,6 +123,7 @@ export interface FileRoutesByTo {
   '/about': typeof AboutRoute
   '/admin': typeof AdminRoute
   '/tickets': typeof TicketsRoute
+  '/tickets/$ticketId': typeof TicketsTicketIdRoute
   '/ai-assistant': typeof AiAssistantRoute
   '/ai-disclaimer': typeof AiDisclaimerRoute
   '/contact': typeof ContactRoute
@@ -133,6 +141,7 @@ export interface FileRoutesById {
   '/about': typeof AboutRoute
   '/admin': typeof AdminRoute
   '/tickets': typeof TicketsRoute
+  '/tickets/$ticketId': typeof TicketsTicketIdRoute
   '/ai-assistant': typeof AiAssistantRoute
   '/ai-disclaimer': typeof AiDisclaimerRoute
   '/contact': typeof ContactRoute
@@ -151,6 +160,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/admin'
     | '/tickets'
+    | '/tickets/$ticketId'
     | '/ai-assistant'
     | '/ai-disclaimer'
     | '/contact'
@@ -167,6 +177,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/admin'
     | '/tickets'
+    | '/tickets/$ticketId'
     | '/ai-assistant'
     | '/ai-disclaimer'
     | '/contact'
@@ -183,6 +194,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/admin'
     | '/tickets'
+    | '/tickets/$ticketId'
     | '/ai-assistant'
     | '/ai-disclaimer'
     | '/contact'
@@ -200,6 +212,7 @@ export interface RootRouteChildren {
   AboutRoute: typeof AboutRoute
   AdminRoute: typeof AdminRoute
   TicketsRoute: typeof TicketsRoute
+  TicketsTicketIdRoute: typeof TicketsTicketIdRoute
   AiAssistantRoute: typeof AiAssistantRoute
   AiDisclaimerRoute: typeof AiDisclaimerRoute
   ContactRoute: typeof ContactRoute
@@ -291,6 +304,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TicketsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/tickets/$ticketId': {
+      id: '/tickets/$ticketId'
+      path: '/tickets/$ticketId'
+      fullPath: '/tickets/$ticketId'
+      preLoaderRoute: typeof TicketsTicketIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -320,6 +340,7 @@ const rootRouteChildren: RootRouteChildren = {
   AboutRoute: AboutRoute,
   AdminRoute: AdminRoute,
   TicketsRoute: TicketsRoute,
+  TicketsTicketIdRoute: TicketsTicketIdRoute,
   AiAssistantRoute: AiAssistantRoute,
   AiDisclaimerRoute: AiDisclaimerRoute,
   ContactRoute: ContactRoute,
