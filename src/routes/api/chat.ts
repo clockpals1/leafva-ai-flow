@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { createClient } from "@supabase/supabase-js";
+import type { Database } from "@/integrations/supabase/types";
 
-const SYSTEM_PROMPT = `You are the LEAFVA AI Assistant — a premium intake and triage specialist for LEAFVA, an Ontario-registered IT services company.
+const DEFAULT_SYSTEM_PROMPT = `You are the LEAFVA AI Assistant — a premium intake and triage specialist for LEAFVA, an Ontario-registered IT services company.
 
 LEAFVA offers: IT support, AI services & integrations, networking & infrastructure, system administration, custom applications, and full IT projects.
 
@@ -21,6 +23,42 @@ Style:
 - Recommend "emergency" routing if the user mentions outage, breach, data loss, or production-down.
 
 You are not a generic chatbot — you are LEAFVA's front desk.`;
+
+/** Load AI configuration from the app_settings table, falling back to env vars. */
+async function loadAiConfig() {
+  const defaults = {
+    apiKey: process.env.LOVABLE_API_KEY ?? process.env.AI_API_KEY ?? "",
+    gatewayUrl: "https://ai.gateway.lovable.dev/v1/chat/completions",
+    model: "google/gemini-2.5-flash",
+    systemPrompt: DEFAULT_SYSTEM_PROMPT,
+  };
+
+  try {
+    const url = process.env.SUPABASE_URL;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!url || !key) return defaults;
+
+    const db = createClient<Database>(url, key, {
+      auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
+    });
+
+    const { data } = await db
+      .from("app_settings")
+      .select("key, value")
+      .in("key", ["ai_api_key", "ai_gateway_url", "ai_model", "ai_system_prompt"]);
+
+    const s = Object.fromEntries((data ?? []).map((r) => [r.key, r.value ?? ""]));
+
+    return {
+      apiKey: s.ai_api_key || defaults.apiKey,
+      gatewayUrl: s.ai_gateway_url || defaults.gatewayUrl,
+      model: s.ai_model || defaults.model,
+      systemPrompt: s.ai_system_prompt || defaults.systemPrompt,
+    };
+  } catch {
+    return defaults;
+  }
+}
 
 export const Route = createFileRoute("/api/chat")({
   server: {
@@ -44,7 +82,7 @@ export const Route = createFileRoute("/api/chat")({
             content: String(m.content ?? "").slice(0, 4000),
           }));
 
-          const apiKey = process.env.LOVABLE_API_KEY;
+          const { apiKey, gatewayUrl, model, systemPrompt } = await loadAiConfig();
           if (!apiKey) {
             return new Response(JSON.stringify({ error: "AI not configured" }), {
               status: 500,
@@ -52,16 +90,16 @@ export const Route = createFileRoute("/api/chat")({
             });
           }
 
-          const upstream = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          const upstream = await fetch(gatewayUrl, {
             method: "POST",
             headers: {
               Authorization: `Bearer ${apiKey}`,
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              model: "google/gemini-2.5-flash",
+              model,
               stream: true,
-              messages: [{ role: "system", content: SYSTEM_PROMPT }, ...safe],
+              messages: [{ role: "system", content: systemPrompt }, ...safe],
             }),
           });
 

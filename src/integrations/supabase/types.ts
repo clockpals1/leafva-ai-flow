@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_settings: {
+        Row: {
+          key: string
+          value: string | null
+          is_secret: boolean
+          category: string
+          label: string
+          description: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          key: string
+          value?: string | null
+          is_secret?: boolean
+          category?: string
+          label?: string
+          description?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          key?: string
+          value?: string | null
+          is_secret?: boolean
+          category?: string
+          label?: string
+          description?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       tickets: {
         Row: {
           category: string | null

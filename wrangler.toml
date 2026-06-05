@@ -1,0 +1,45 @@
+# Cloudflare Workers deployment config for LEAFVA AI Flow
+# TanStack Start + Nitro (cloudflare preset) outputs a single Worker bundle.
+#
+# DEPLOY:
+#   bun run build            — builds to .output/server/index.mjs + .output/public/
+#   npx wrangler deploy      — uploads the worker to Cloudflare
+#
+# Or use Cloudflare Pages (CI/CD):
+#   Build command:  bun run build
+#   Output dir:     .output/public
+#   Functions dir:  (handled by the worker entry below)
+
+name = "leafva-ai-flow"
+main = ".output/server/index.mjs"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+# Static assets served directly by Cloudflare CDN
+[assets]
+directory = ".output/public"
+binding = "ASSETS"
+
+# ─── Environment variables ────────────────────────────────────────────────────
+# Non-secret / public config can go here.
+# NEVER put API keys here — use `wrangler secret put <NAME>` or the
+# Cloudflare dashboard → Workers & Pages → Settings → Variables & Secrets.
+#
+# Required secrets (set via dashboard or `wrangler secret put`):
+#   SUPABASE_URL
+#   SUPABASE_PUBLISHABLE_KEY   (anon/public key)
+#   SUPABASE_SERVICE_ROLE_KEY  (service role — server-only, never in client)
+#
+# Optional (fallback when admin settings are blank):
+#   LOVABLE_API_KEY            (AI gateway key — also configurable in /admin)
+#   AI_API_KEY                 (alias for LOVABLE_API_KEY)
+
+[vars]
+NODE_ENV = "production"
+
+# ─── Per-environment overrides ────────────────────────────────────────────────
+[env.preview]
+name = "leafva-ai-flow-preview"
+
+[env.preview.vars]
+NODE_ENV = "development"

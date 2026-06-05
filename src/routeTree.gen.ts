@@ -20,6 +20,8 @@ import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiTicketsRouteImport } from './routes/api/tickets'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
+import { Route as AdminRouteImport } from './routes/admin'
+import { Route as ApiAdminSettingsRouteImport } from './routes/api/admin/settings'
 
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
@@ -76,10 +78,21 @@ const ApiChatRoute = ApiChatRouteImport.update({
   path: '/api/chat',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminSettingsRoute = ApiAdminSettingsRouteImport.update({
+  id: '/api/admin/settings',
+  path: '/api/admin/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/admin': typeof AdminRoute
   '/ai-assistant': typeof AiAssistantRoute
   '/ai-disclaimer': typeof AiDisclaimerRoute
   '/contact': typeof ContactRoute
@@ -89,10 +102,12 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/api/chat': typeof ApiChatRoute
   '/api/tickets': typeof ApiTicketsRoute
+  '/api/admin/settings': typeof ApiAdminSettingsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/admin': typeof AdminRoute
   '/ai-assistant': typeof AiAssistantRoute
   '/ai-disclaimer': typeof AiDisclaimerRoute
   '/contact': typeof ContactRoute
@@ -102,11 +117,13 @@ export interface FileRoutesByTo {
   '/terms': typeof TermsRoute
   '/api/chat': typeof ApiChatRoute
   '/api/tickets': typeof ApiTicketsRoute
+  '/api/admin/settings': typeof ApiAdminSettingsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/admin': typeof AdminRoute
   '/ai-assistant': typeof AiAssistantRoute
   '/ai-disclaimer': typeof AiDisclaimerRoute
   '/contact': typeof ContactRoute
@@ -116,12 +133,14 @@ export interface FileRoutesById {
   '/terms': typeof TermsRoute
   '/api/chat': typeof ApiChatRoute
   '/api/tickets': typeof ApiTicketsRoute
+  '/api/admin/settings': typeof ApiAdminSettingsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/about'
+    | '/admin'
     | '/ai-assistant'
     | '/ai-disclaimer'
     | '/contact'
@@ -131,10 +150,12 @@ export interface FileRouteTypes {
     | '/terms'
     | '/api/chat'
     | '/api/tickets'
+    | '/api/admin/settings'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/about'
+    | '/admin'
     | '/ai-assistant'
     | '/ai-disclaimer'
     | '/contact'
@@ -144,10 +165,12 @@ export interface FileRouteTypes {
     | '/terms'
     | '/api/chat'
     | '/api/tickets'
+    | '/api/admin/settings'
   id:
     | '__root__'
     | '/'
     | '/about'
+    | '/admin'
     | '/ai-assistant'
     | '/ai-disclaimer'
     | '/contact'
@@ -157,11 +180,13 @@ export interface FileRouteTypes {
     | '/terms'
     | '/api/chat'
     | '/api/tickets'
+    | '/api/admin/settings'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
+  AdminRoute: typeof AdminRoute
   AiAssistantRoute: typeof AiAssistantRoute
   AiDisclaimerRoute: typeof AiDisclaimerRoute
   ContactRoute: typeof ContactRoute
@@ -171,10 +196,25 @@ export interface RootRouteChildren {
   TermsRoute: typeof TermsRoute
   ApiChatRoute: typeof ApiChatRoute
   ApiTicketsRoute: typeof ApiTicketsRoute
+  ApiAdminSettingsRoute: typeof ApiAdminSettingsRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/settings': {
+      id: '/api/admin/settings'
+      path: '/api/admin/settings'
+      fullPath: '/api/admin/settings'
+      preLoaderRoute: typeof ApiAdminSettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/terms': {
       id: '/terms'
       path: '/terms'
@@ -258,6 +298,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
+  AdminRoute: AdminRoute,
   AiAssistantRoute: AiAssistantRoute,
   AiDisclaimerRoute: AiDisclaimerRoute,
   ContactRoute: ContactRoute,
@@ -267,6 +308,7 @@ const rootRouteChildren: RootRouteChildren = {
   TermsRoute: TermsRoute,
   ApiChatRoute: ApiChatRoute,
   ApiTicketsRoute: ApiTicketsRoute,
+  ApiAdminSettingsRoute: ApiAdminSettingsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
