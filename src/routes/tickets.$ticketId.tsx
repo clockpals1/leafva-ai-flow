@@ -5,7 +5,7 @@ import {
   ArrowLeft, Clock, User, ChevronDown, Loader2, Send, Lock,
   Brain, Tag, Phone, Mail, Building2, UserCheck, Flag,
   MessageSquare, FileText, History, RefreshCw, CheckCircle2,
-  Calendar, AlertTriangle, Circle,
+  Calendar, AlertTriangle, Circle, Sparkles,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
@@ -114,12 +114,13 @@ function Avatar({ name, url, md }: { name: string; url: string | null; md?: bool
     : <div className={`flex ${sz} shrink-0 items-center justify-center rounded-full bg-green-500/20 font-semibold text-green-400 ring-1 ring-green-500/30`}>{name.slice(0,2).toUpperCase()}</div>;
 }
 
-function Card({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) {
+function Card({ title, icon, action, children }: { title: string; icon: React.ReactNode; action?: React.ReactNode; children: React.ReactNode }) {
   return (
     <div className="rounded-xl border border-slate-800 bg-slate-900/50">
       <div className="flex items-center gap-2 border-b border-slate-800 px-4 py-3">
         <span className="text-slate-500">{icon}</span>
         <h3 className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">{title}</h3>
+        {action && <div className="ml-auto">{action}</div>}
       </div>
       <div className="p-4">{children}</div>
     </div>
@@ -292,10 +293,46 @@ function MsgThread({ msgs, myName }: { msgs: MessageRow[]; myName: string | null
 
 // ── Reply composer ────────────────────────────────────────────────────────────
 
-function Composer({ ticketId, staffId, onSent }: { ticketId: string; staffId: string | null; onSent: () => void }) {
+function Composer({
+  ticketId, staffId, onSent,
+  ticketData, threadMsgs, aiData,
+}: {
+  ticketId: string;
+  staffId: string | null;
+  onSent: () => void;
+  ticketData?: { summary?: string | null; details?: string | null; name?: string | null };
+  threadMsgs?: MessageRow[];
+  aiData?: AiClassRow | null;
+}) {
   const [body, setBody] = useState("");
   const [note, setNote] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [suggesting, setSuggesting] = useState(false);
+
+  const suggestReply = async () => {
+    setSuggesting(true);
+    try {
+      const res = await fetch("/api/ai/reply", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          summary: ticketData?.summary,
+          details: ticketData?.details,
+          customerName: ticketData?.name,
+          messages: (threadMsgs ?? []).slice(-10),
+          aiClassification: aiData
+            ? { root_cause: aiData.root_cause, resolution_steps: aiData.resolution_steps }
+            : undefined,
+        }),
+      });
+      if (res.ok) {
+        const { reply } = (await res.json()) as { reply?: string };
+        if (reply) setBody(reply);
+      }
+    } finally {
+      setSuggesting(false);
+    }
+  };
 
   const send = async () => {
     if (!body.trim() || !staffId) return;
@@ -329,7 +366,16 @@ function Composer({ ticketId, staffId, onSent }: { ticketId: string; staffId: st
           : "border-slate-700 bg-slate-800/60 focus:border-green-500/40 focus:ring-1 focus:ring-green-500/15"}`}
       />
       <div className="mt-2 flex items-center justify-between">
-        <p className="text-[10px] text-slate-600">⌘ Enter to send</p>
+        <div className="flex items-center gap-2">
+          <p className="text-[10px] text-slate-600">⌘ Enter to send</p>
+          {!note && (
+            <button onClick={suggestReply} disabled={suggesting || busy}
+              className="flex items-center gap-1 rounded-md px-2 py-1 text-[10px] font-medium text-purple-400 transition hover:bg-purple-500/10 disabled:opacity-40">
+              {suggesting ? <Loader2 size={10} className="animate-spin" /> : <Sparkles size={10} />}
+              {suggesting ? "Generating…" : "Suggest Reply"}
+            </button>
+          )}
+        </div>
         <button onClick={send} disabled={!body.trim() || !staffId || busy}
           className={`flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-semibold transition disabled:opacity-40 ${note
             ? "bg-amber-500/20 text-amber-400 hover:bg-amber-500/30"
@@ -371,16 +417,18 @@ function TicketDetailPage() {
   const { ticketId } = Route.useParams();
   const navigate = useNavigate();
 
-  const [ticket, setTicket]     = useState<TicketRow | null>(null);
-  const [msgs, setMsgs]         = useState<MessageRow[]>([]);
-  const [hist, setHist]         = useState<HistoryRow[]>([]);
-  const [ai, setAi]             = useState<AiClassRow | null>(null);
-  const [staff, setStaff]       = useState<StaffRow[]>([]);
-  const [me, setMe]             = useState<StaffRow | null>(null);
-  const [email, setEmail]       = useState<string | null>(null);
-  const [loading, setLoading]   = useState(true);
-  const [missing, setMissing]   = useState(false);
-  const [msgTab, setMsgTab]     = useState<"msgs" | "hist">("msgs");
+  const [ticket, setTicket]       = useState<TicketRow | null>(null);
+  const [msgs, setMsgs]           = useState<MessageRow[]>([]);
+  const [hist, setHist]           = useState<HistoryRow[]>([]);
+  const [ai, setAi]               = useState<AiClassRow | null>(null);
+  const [staff, setStaff]         = useState<StaffRow[]>([]);
+  const [me, setMe]               = useState<StaffRow | null>(null);
+  const [email, setEmail]         = useState<string | null>(null);
+  const [loading, setLoading]     = useState(true);
+  const [missing, setMissing]     = useState(false);
+  const [msgTab, setMsgTab]       = useState<"msgs" | "hist">("msgs");
+  const [classifying, setClassifying] = useState(false);
+  const classifyAttempted = useRef(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -409,6 +457,50 @@ function TicketDetailPage() {
   }, [ticketId]);
 
   useEffect(() => { load(); }, [load]);
+
+  const classify = useCallback(async (t: TicketRow) => {
+    setClassifying(true);
+    try {
+      const res = await fetch("/api/ai/classify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ticketId: t.id,
+          summary: t.summary,
+          details: t.details,
+          transcript: t.transcript,
+          name: t.name,
+          company: t.company,
+          category: t.category,
+        }),
+      });
+      if (res.ok) {
+        const d = (await res.json()) as {
+          category: string; urgency: string; confidence: number;
+          root_cause: string; resolution_steps: string[]; suggested_reply: string;
+        };
+        setAi({
+          id: "", ticket_id: t.id, model: null,
+          detected_category: d.category,
+          detected_urgency: d.urgency,
+          confidence_score: d.confidence,
+          root_cause: d.root_cause,
+          resolution_steps: d.resolution_steps,
+          suggested_response: d.suggested_reply,
+          created_at: new Date().toISOString(),
+        });
+      }
+    } finally {
+      setClassifying(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!loading && ticket && !ai && !classifyAttempted.current) {
+      classifyAttempted.current = true;
+      classify(ticket);
+    }
+  }, [loading, ticket, ai, classify]);
 
   useEffect(() => {
     const ch = supabase.channel(`td-${ticketId}`)
@@ -555,7 +647,7 @@ function TicketDetailPage() {
                   </div>
                   <div className="p-4">
                     {msgTab === "msgs"
-                      ? <><MsgThread msgs={msgs} myName={me?.name ?? null} /><Composer ticketId={ticket.id} staffId={me?.id ?? null} onSent={load} /></>
+                      ? <><MsgThread msgs={msgs} myName={me?.name ?? null} /><Composer ticketId={ticket.id} staffId={me?.id ?? null} onSent={load} ticketData={{ summary: ticket.summary, details: ticket.details, name: ticket.name }} threadMsgs={msgs} aiData={ai} /></>
                       : <HistLog rows={hist} />
                     }
                   </div>
@@ -585,12 +677,29 @@ function TicketDetailPage() {
                 )}
 
                 {/* AI */}
-                {ai && (
-                  <Card title="AI Analysis" icon={<Brain size={14} />}>
+                {(ai || classifying) && (
+                  <Card
+                    title="AI Analysis"
+                    icon={<Brain size={14} />}
+                    action={
+                      <button
+                        onClick={() => ticket && classify(ticket)}
+                        disabled={classifying}
+                        className="flex items-center gap-1 rounded-md px-2 py-1 text-[10px] text-slate-500 transition hover:text-purple-400 disabled:opacity-40">
+                        {classifying ? <Loader2 size={10} className="animate-spin" /> : <RefreshCw size={10} />}
+                        {classifying ? "Analyzing…" : "Re-analyze"}
+                      </button>
+                    }>
+                    {classifying && !ai && (
+                      <div className="flex items-center gap-2 py-2 text-xs text-slate-500">
+                        <Loader2 size={12} className="animate-spin text-purple-400" />
+                        Analyzing ticket with AI…
+                      </div>
+                    )}
                     <div className="space-y-3">
-                      {ai.detected_category && <div><p className="text-[10px] uppercase tracking-wide text-slate-600">Category</p><p className="mt-0.5 text-xs text-slate-300">{ai.detected_category}</p></div>}
-                      {ai.detected_urgency && <div><p className="text-[10px] uppercase tracking-wide text-slate-600">Urgency</p><p className={`mt-0.5 text-xs font-medium ${(URG_CFG[ai.detected_urgency] ?? URG_CFG.low).color}`}>{ai.detected_urgency}</p></div>}
-                      {ai.confidence_score != null && (
+                      {ai?.detected_category && <div><p className="text-[10px] uppercase tracking-wide text-slate-600">Category</p><p className="mt-0.5 text-xs text-slate-300">{ai.detected_category}</p></div>}
+                      {ai?.detected_urgency && <div><p className="text-[10px] uppercase tracking-wide text-slate-600">Urgency</p><p className={`mt-0.5 text-xs font-medium ${(URG_CFG[ai.detected_urgency] ?? URG_CFG.low).color}`}>{ai.detected_urgency}</p></div>}
+                      {ai?.confidence_score != null && (
                         <div>
                           <p className="text-[10px] uppercase tracking-wide text-slate-600">Confidence</p>
                           <div className="mt-1.5 flex items-center gap-2">
@@ -601,8 +710,8 @@ function TicketDetailPage() {
                           </div>
                         </div>
                       )}
-                      {ai.root_cause && <div><p className="text-[10px] uppercase tracking-wide text-slate-600">Root Cause</p><p className="mt-0.5 text-xs text-slate-400">{ai.root_cause}</p></div>}
-                      {ai.resolution_steps && ai.resolution_steps.length > 0 && (
+                      {ai?.root_cause && <div><p className="text-[10px] uppercase tracking-wide text-slate-600">Root Cause</p><p className="mt-0.5 text-xs text-slate-400">{ai.root_cause}</p></div>}
+                      {ai?.resolution_steps && ai.resolution_steps.length > 0 && (
                         <div>
                           <p className="mb-1.5 text-[10px] uppercase tracking-wide text-slate-600">Suggested Steps</p>
                           <ol className="space-y-1">{ai.resolution_steps.map((s, i) => (
@@ -610,7 +719,7 @@ function TicketDetailPage() {
                           ))}</ol>
                         </div>
                       )}
-                      {ai.suggested_response && (
+                      {ai?.suggested_response && (
                         <div>
                           <p className="mb-1 text-[10px] uppercase tracking-wide text-slate-600">Suggested Reply</p>
                           <p className="text-xs text-slate-400 leading-relaxed italic">{ai.suggested_response}</p>
