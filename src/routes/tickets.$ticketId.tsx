@@ -337,12 +337,23 @@ function Composer({
   const send = async () => {
     if (!body.trim() || !staffId) return;
     setBusy(true);
+    const trimmedBody = body.trim();
     await supabase.from("ticket_messages").insert({
       ticket_id: ticketId, author_staff_id: staffId,
       direction: note ? "internal" : "outbound",
-      body: body.trim(), is_note: note, channel: "portal",
+      body: trimmedBody, is_note: note, channel: "portal",
     } as never);
     setBody(""); setBusy(false); onSent();
+    if (!note) {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (!session) return;
+        fetch("/api/email/send", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+          body: JSON.stringify({ type: "reply", ticketId, messageBody: trimmedBody }),
+        }).catch(() => {});
+      });
+    }
   };
 
   return (
