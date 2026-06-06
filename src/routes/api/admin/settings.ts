@@ -6,7 +6,10 @@ import type { Database } from "@/integrations/supabase/types";
 function adminClient() {
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) throw new Error("SUPABASE_SERVICE_ROLE_KEY not configured");
+  if (!url || !key) {
+    console.error("Missing env vars:", { url: !!url, key: !!key });
+    throw new Error("SUPABASE_SERVICE_ROLE_KEY not configured");
+  }
   return createClient<Database>(url, key, {
     auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
   });
@@ -74,7 +77,8 @@ export const Route = createFileRoute("/api/admin/settings")({
           });
         } catch (err) {
           console.error("admin settings GET error", err);
-          return new Response(JSON.stringify({ error: "Could not load settings" }), {
+          const errorMessage = err instanceof Error ? err.message : String(err);
+          return new Response(JSON.stringify({ error: "Could not load settings", details: errorMessage }), {
             status: 500,
             headers: { "Content-Type": "application/json" },
           });
