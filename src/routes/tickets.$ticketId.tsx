@@ -5,7 +5,7 @@ import {
   ArrowLeft, Clock, User, ChevronDown, Loader2, Send, Lock,
   Brain, Tag, Phone, Mail, Building2, UserCheck, Flag,
   MessageSquare, FileText, History, RefreshCw, CheckCircle2,
-  Calendar, AlertTriangle, Circle, Sparkles,
+  Calendar, AlertTriangle, Circle, Sparkles, MonitorPlay, X, Play, StopCircle,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
@@ -50,6 +50,24 @@ interface AiClassRow {
   resolution_steps: string[] | null;
   confidence_score: number | null;
   created_at: string;
+}
+interface RemoteSessionRow {
+  id: string;
+  ticket_id: string;
+  requested_by: string;
+  approved_by: string | null;
+  session_type: string;
+  session_tool: string | null;
+  session_url: string | null;
+  status: "pending" | "approved" | "active" | "completed" | "cancelled" | "denied";
+  requested_at: string;
+  approved_at: string | null;
+  started_at: string | null;
+  ended_at: string | null;
+  duration_minutes: number | null;
+  session_notes: string | null;
+  requested_by_staff: { name: string } | null;
+  approved_by_staff: { name: string } | null;
 }
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -435,6 +453,7 @@ function TicketDetailPage() {
   const [staff, setStaff]         = useState<StaffRow[]>([]);
   const [me, setMe]               = useState<StaffRow | null>(null);
   const [email, setEmail]         = useState<string | null>(null);
+  const [remoteSessions, setRemoteSessions] = useState<RemoteSessionRow[]>([]);
   const [loading, setLoading]     = useState(true);
   const [missing, setMissing]     = useState(false);
   const [msgTab, setMsgTab]       = useState<"msgs" | "hist">("msgs");
@@ -451,12 +470,13 @@ function TicketDetailPage() {
   }, [navigate]);
 
   const load = useCallback(async () => {
-    const [tRes, mRes, hRes, aRes, sRes] = await Promise.all([
+    const [tRes, mRes, hRes, aRes, sRes, rRes] = await Promise.all([
       supabase.from("tickets").select("*, assigned_staff:staff!tickets_assigned_staff_id_fkey(id,name,avatar_url)").eq("id", ticketId).single(),
       supabase.from("ticket_messages").select("*, author_staff:staff!ticket_messages_author_staff_id_fkey(name,avatar_url)").eq("ticket_id", ticketId).order("created_at", { ascending: true }),
       supabase.from("ticket_history").select("*, changed_by_staff:staff!ticket_history_changed_by_fkey(name)").eq("ticket_id", ticketId).order("created_at", { ascending: false }),
       supabase.from("ai_classifications").select("*").eq("ticket_id", ticketId).maybeSingle(),
       supabase.from("staff").select("*").eq("is_available", true).order("name"),
+      supabase.from("remote_sessions").select("*, requested_by_staff:staff!remote_sessions_requested_by_fkey(name), approved_by_staff:staff!remote_sessions_approved_by_fkey(name)").eq("ticket_id", ticketId).order("created_at", { ascending: false }),
     ]);
     if (tRes.error || !tRes.data) { setMissing(true); setLoading(false); return; }
     setTicket(tRes.data as TicketRow);
@@ -464,6 +484,7 @@ function TicketDetailPage() {
     setHist((hRes.data ?? []) as HistoryRow[]);
     setAi(aRes.data as AiClassRow | null);
     setStaff((sRes.data ?? []) as StaffRow[]);
+    setRemoteSessions((rRes.data ?? []) as RemoteSessionRow[]);
     setLoading(false);
   }, [ticketId]);
 
@@ -739,6 +760,79 @@ function TicketDetailPage() {
                     </div>
                   </Card>
                 )}
+
+                {/* Remote Sessions */}
+                <Card title="Remote Sessions" icon={<MonitorPlay size={14} />}>
+                  <div className="space-y-3">
+                    {remoteSessions.length === 0 ? (
+                      <p className="text-xs text-slate-500">No remote sessions</p>
+                    ) : (
+                      remoteSessions.map((rs) => (
+                        <div key={rs.id} className="rounded-lg border border-slate-700/60 bg-slate-950/50 p-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${
+                              rs.status === "active" ? "bg-green-500/20 text-green-400" :
+                              rs.status === "pending" ? "bg-amber-500/20 text-amber-400" :
+                              rs.status === "completed" ? "bg-blue-500/20 text-blue-400" :
+                              rs.status === "cancelled" ? "bg-slate-500/20 text-slate-400" :
+                              "bg-red-500/20 text-red-400"
+                            }`}>
+                              {rs.status}
+                            </span>
+                            <span className="text-[10px] text-slate-500">{timeAgo(rs.created_at)}</span>
+                          </div>
+                          <p className="text-xs text-slate-300 mb-1">{rs.session_type} session</p>
+                          {rs.requested_by_staff && <p className="text-[10px] text-slate-500">Requested by {rs.requested_by_staff.name}</p>}
+                          {rs.session_url && rs.status === "active" && (
+                            <a href={rs.session_url} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-1 text-xs text-green-400 hover:underline">
+                              <Play size={10} /> Join Session
+                            </a>
+                          )}
+                          {rs.status === "active" && (
+                            <button onClick={async () => {
+                              const { data: { session } } = await supabase.auth.getSession();
+                              if (!session) return;
+                              const res = await fetch("/api/remote-sessions", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+                                body: JSON.stringify({ action: "end", session_id: rs.id, session_notes: "" }),
+                              });
+                              if (res.ok) load();
+                            }} className="mt-2 flex items-center gap-1 text-xs text-red-400 hover:text-red-300">
+                              <StopCircle size={10} /> End Session
+                            </button>
+                          )}
+                          {rs.status === "pending" && (
+                            <button onClick={async () => {
+                              const { data: { session } } = await supabase.auth.getSession();
+                              if (!session) return;
+                              const res = await fetch("/api/remote-sessions", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+                                body: JSON.stringify({ action: "cancel", session_id: rs.id }),
+                              });
+                              if (res.ok) load();
+                            }} className="mt-2 flex items-center gap-1 text-xs text-slate-400 hover:text-slate-300">
+                              <X size={10} /> Cancel Request
+                            </button>
+                          )}
+                        </div>
+                      ))
+                    )}
+                    <button onClick={async () => {
+                      const { data: { session } } = await supabase.auth.getSession();
+                      if (!session) return;
+                      const res = await fetch("/api/remote-sessions", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+                        body: JSON.stringify({ action: "request", ticket_id: ticketId, session_type: "remote" }),
+                      });
+                      if (res.ok) load();
+                    }} className="w-full flex items-center justify-center gap-2 rounded-lg border border-dashed border-slate-700 bg-slate-950/30 px-3 py-2 text-xs text-slate-400 hover:border-gold/50 hover:text-gold transition">
+                      <MonitorPlay size={12} /> Request Remote Session
+                    </button>
+                  </div>
+                </Card>
 
                 {/* Resolution */}
                 {ticket.resolved_at && (

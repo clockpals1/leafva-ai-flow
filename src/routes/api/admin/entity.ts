@@ -1,0 +1,104 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { createClient } from "@supabase/supabase-js";
+import type { Database } from "@/integrations/supabase/types";
+
+function adminClient() {
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) throw new Error("Supabase not configured");
+  return createClient<Database>(url, key, {
+    auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
+  });
+}
+
+async function verifyAuth(request: Request): Promise<boolean> {
+  const token = (request.headers.get("Authorization") ?? "").replace("Bearer ", "").trim();
+  if (!token) return false;
+  const url = process.env.SUPABASE_URL;
+  const anonKey = process.env.SUPABASE_PUBLISHABLE_KEY;
+  if (!url || !anonKey) return false;
+  const authClient = createClient(url, anonKey, {
+    auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
+  });
+  const { error } = await authClient.auth.getUser(token);
+  return !error;
+}
+
+export const Route = createFileRoute("/api/admin/entity")({
+  server: {
+    handlers: {
+      GET: async ({ request }) => {
+        const ok = await verifyAuth(request);
+        if (!ok) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { "Content-Type": "application/json" } });
+
+        const url = new URL(request.url);
+        const type = url.searchParams.get("type");
+        const db = adminClient();
+
+        if (type === "categories") {
+          const { data, error } = await db.from("ticket_categories").select("*").order("sort_order");
+          if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: { "Content-Type": "application/json" } });
+          return new Response(JSON.stringify(data), { status: 200, headers: { "Content-Type": "application/json" } });
+        }
+
+        if (type === "sla") {
+          const { data, error } = await db.from("sla_policies").select("*").order("is_default", { ascending: false }).order("name");
+          if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: { "Content-Type": "application/json" } });
+          return new Response(JSON.stringify(data), { status: 200, headers: { "Content-Type": "application/json" } });
+        }
+
+        return new Response(JSON.stringify({ error: "Unknown type" }), { status: 400, headers: { "Content-Type": "application/json" } });
+      },
+
+      POST: async ({ request }) => {
+        const ok = await verifyAuth(request);
+        if (!ok) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { "Content-Type": "application/json" } });
+
+        const body = await request.json() as { type: string; action: string; data: Record<string, unknown> };
+        const { type, action, data } = body;
+        const db = adminClient();
+
+        if (type === "categories") {
+          if (action === "create") {
+            const slug = (data.slug as string) || (data.name as string).toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+            const { data: row, error } = await db.from("ticket_categories").insert({ ...data, slug }).select().single();
+            if (error) return new Response(JSON.stringify({ error: error.message }), { status: 400, headers: { "Content-Type": "application/json" } });
+            return new Response(JSON.stringify(row), { status: 201, headers: { "Content-Type": "application/json" } });
+          }
+          if (action === "update") {
+            const { id, created_at, updated_at, ...rest } = data as Record<string, unknown>;
+            const { data: row, error } = await db.from("ticket_categories").update(rest).eq("id", id as string).select().single();
+            if (error) return new Response(JSON.stringify({ error: error.message }), { status: 400, headers: { "Content-Type": "application/json" } });
+            return new Response(JSON.stringify(row), { status: 200, headers: { "Content-Type": "application/json" } });
+          }
+          if (action === "delete") {
+            const { error } = await db.from("ticket_categories").delete().eq("id", data.id as string);
+            if (error) return new Response(JSON.stringify({ error: error.message }), { status: 400, headers: { "Content-Type": "application/json" } });
+            return new Response(JSON.stringify({ ok: true }), { status: 200, headers: { "Content-Type": "application/json" } });
+          }
+        }
+
+        if (type === "sla") {
+          if (action === "create") {
+            const { data: row, error } = await db.from("sla_policies").insert(data as never).select().single();
+            if (error) return new Response(JSON.stringify({ error: error.message }), { status: 400, headers: { "Content-Type": "application/json" } });
+            return new Response(JSON.stringify(row), { status: 201, headers: { "Content-Type": "application/json" } });
+          }
+          if (action === "update") {
+            const { id, created_at, updated_at, ...rest } = data as Record<string, unknown>;
+            const { data: row, error } = await db.from("sla_policies").update(rest).eq("id", id as string).select().single();
+            if (error) return new Response(JSON.stringify({ error: error.message }), { status: 400, headers: { "Content-Type": "application/json" } });
+            return new Response(JSON.stringify(row), { status: 200, headers: { "Content-Type": "application/json" } });
+          }
+          if (action === "delete") {
+            const { error } = await db.from("sla_policies").delete().eq("id", data.id as string);
+            if (error) return new Response(JSON.stringify({ error: error.message }), { status: 400, headers: { "Content-Type": "application/json" } });
+            return new Response(JSON.stringify({ ok: true }), { status: 200, headers: { "Content-Type": "application/json" } });
+          }
+        }
+
+        return new Response(JSON.stringify({ error: "Invalid request" }), { status: 400, headers: { "Content-Type": "application/json" } });
+      },
+    },
+  },
+});

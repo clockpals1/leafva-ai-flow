@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect, useCallback, type FormEvent, type ChangeEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Session } from "@supabase/supabase-js";
-import { Loader2, Save, Eye, EyeOff, Settings, Bot, Mail, Bell, ShieldCheck, Server, type LucideIcon } from "lucide-react";
+import { Loader2, Save, Eye, EyeOff, Settings, Bot, Mail, Bell, ShieldCheck, Server, Tag, Clock, Palette, Plus, Trash2, Edit, type LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 import { DashboardNav } from "@/components/dashboard/DashboardNav";
 
@@ -25,13 +25,16 @@ type AppSetting = {
   description: string | null;
 };
 
-type Tab = "ai" | "email" | "smtp" | "notifications";
+type Tab = "ai" | "email" | "smtp" | "notifications" | "categories" | "sla" | "branding";
 
 const TAB_META: { id: Tab; label: string; icon: LucideIcon }[] = [
   { id: "ai",            label: "AI",            icon: Bot },
   { id: "email",         label: "Email / Resend", icon: Mail },
   { id: "smtp",          label: "SMTP",           icon: Server },
   { id: "notifications", label: "Notifications",  icon: Bell },
+  { id: "categories",    label: "Categories",    icon: Tag },
+  { id: "sla",           label: "SLA Policies",  icon: Clock },
+  { id: "branding",      label: "Branding",      icon: Palette },
 ];
 
 const BOOLEAN_KEYS = new Set([
@@ -244,6 +247,240 @@ function SettingRow({
   );
 }
 
+// ---------- Entity panels (Categories, SLA, Branding) ----------
+
+function CategoriesPanel({ session }: { session: Session }) {
+  const [items, setItems] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState<any>(null);
+  const [form, setForm] = useState({ name: "", color: "#22c55e", default_urgency: "medium", default_sla_hours: 24, auto_assign_skill: "" });
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const res = await fetch("/api/admin/entity?type=categories", { headers: { Authorization: `Bearer ${session.access_token}` } });
+    if (res.ok) setItems(await res.json());
+    setLoading(false);
+  }, [session.access_token]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const handleSave = async () => {
+    const action = editing ? "update" : "create";
+    const body = { type: "categories", action, data: editing ? { ...form, id: editing.id } : form };
+    const res = await fetch("/api/admin/entity", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+      body: JSON.stringify(body),
+    });
+    if (res.ok) { setEditing(null); setForm({ name: "", color: "#22c55e", default_urgency: "medium", default_sla_hours: 24, auto_assign_skill: "" }); load(); toast.success(action === "create" ? "Category created" : "Category updated"); }
+    else toast.error("Failed to save");
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Delete this category?")) return;
+    const res = await fetch("/api/admin/entity", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+      body: JSON.stringify({ type: "categories", action: "delete", data: { id } }),
+    });
+    if (res.ok) { load(); toast.success("Deleted"); }
+    else toast.error("Failed to delete");
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold">Ticket Categories</h2>
+        <button onClick={() => { setEditing(null); setForm({ name: "", color: "#22c55e", default_urgency: "medium", default_sla_hours: 24, auto_assign_skill: "" }); }} className="flex items-center gap-2 rounded-lg bg-gold px-3 py-2 text-xs font-semibold text-gold-foreground">
+          <Plus size={14} /> Add Category
+        </button>
+      </div>
+      {loading ? <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /> : (
+        <div className="grid gap-3">
+          {items.map((item) => (
+            <div key={item.id} className="flex items-center gap-3 rounded-xl border border-border/60 bg-card/50 p-4">
+              <div className="h-8 w-8 rounded-full" style={{ backgroundColor: item.color }} />
+              <div className="flex-1">
+                <p className="text-sm font-medium">{item.name}</p>
+                <p className="text-xs text-muted-foreground">Default: {item.default_urgency} · SLA: {item.default_sla_hours}h</p>
+              </div>
+              <button onClick={() => { setEditing(item); setForm({ name: item.name, color: item.color, default_urgency: item.default_urgency, default_sla_hours: item.default_sla_hours, auto_assign_skill: item.auto_assign_skill ?? "" }); }} className="p-2 rounded-lg hover:bg-accent"><Edit size={14} /></button>
+              <button onClick={() => handleDelete(item.id)} className="p-2 rounded-lg hover:bg-accent text-red-400"><Trash2 size={14} /></button>
+            </div>
+          ))}
+        </div>
+      )}
+      {(editing || (!editing && form.name)) && (
+        <div className="rounded-xl border border-border/60 bg-card/50 p-4 space-y-3">
+          <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Category name" className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm" />
+          <div className="flex gap-3">
+            <input type="color" value={form.color} onChange={e => setForm({ ...form, color: e.target.value })} className="h-10 w-16 rounded-lg border border-border bg-card" />
+            <select value={form.default_urgency} onChange={e => setForm({ ...form, default_urgency: e.target.value })} className="flex-1 rounded-lg border border-border bg-card px-3 py-2 text-sm">
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+              <option value="emergency">Emergency</option>
+            </select>
+            <input type="number" value={form.default_sla_hours} onChange={e => setForm({ ...form, default_sla_hours: parseInt(e.target.value) })} placeholder="SLA hours" className="w-24 rounded-lg border border-border bg-card px-3 py-2 text-sm" />
+          </div>
+          <input value={form.auto_assign_skill} onChange={e => setForm({ ...form, auto_assign_skill: e.target.value })} placeholder="Auto-assign skill (e.g., networking)" className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm" />
+          <div className="flex gap-2">
+            <button onClick={handleSave} className="flex-1 rounded-lg bg-gold px-3 py-2 text-xs font-semibold text-gold-foreground">Save</button>
+            <button onClick={() => { setEditing(null); setForm({ name: "", color: "#22c55e", default_urgency: "medium", default_sla_hours: 24, auto_assign_skill: "" }); }} className="rounded-lg px-3 py-2 text-xs text-muted-foreground">Cancel</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SLAPanel({ session }: { session: Session }) {
+  const [items, setItems] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState<any>(null);
+  const [form, setForm] = useState({ name: "", urgency: "", response_hours: 4, resolution_hours: 24, escalation_hours: 12, is_default: false });
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const res = await fetch("/api/admin/entity?type=sla", { headers: { Authorization: `Bearer ${session.access_token}` } });
+    if (res.ok) setItems(await res.json());
+    setLoading(false);
+  }, [session.access_token]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const handleSave = async () => {
+    const action = editing ? "update" : "create";
+    const body = { type: "sla", action, data: editing ? { ...form, id: editing.id } : form };
+    const res = await fetch("/api/admin/entity", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+      body: JSON.stringify(body),
+    });
+    if (res.ok) { setEditing(null); setForm({ name: "", urgency: "", response_hours: 4, resolution_hours: 24, escalation_hours: 12, is_default: false }); load(); toast.success(action === "create" ? "SLA created" : "SLA updated"); }
+    else toast.error("Failed to save");
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Delete this SLA policy?")) return;
+    const res = await fetch("/api/admin/entity", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+      body: JSON.stringify({ type: "sla", action: "delete", data: { id } }),
+    });
+    if (res.ok) { load(); toast.success("Deleted"); }
+    else toast.error("Failed to delete");
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold">SLA Policies</h2>
+        <button onClick={() => { setEditing(null); setForm({ name: "", urgency: "", response_hours: 4, resolution_hours: 24, escalation_hours: 12, is_default: false }); }} className="flex items-center gap-2 rounded-lg bg-gold px-3 py-2 text-xs font-semibold text-gold-foreground">
+          <Plus size={14} /> Add SLA
+        </button>
+      </div>
+      {loading ? <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /> : (
+        <div className="grid gap-3">
+          {items.map((item) => (
+            <div key={item.id} className="flex items-center gap-3 rounded-xl border border-border/60 bg-card/50 p-4">
+              <Clock className="h-8 w-8 text-gold" />
+              <div className="flex-1">
+                <p className="text-sm font-medium">{item.name} {item.is_default && <span className="ml-2 text-[10px] bg-gold/20 text-gold px-2 py-0.5 rounded-full">Default</span>}</p>
+                <p className="text-xs text-muted-foreground">Response: {item.response_hours}h · Resolution: {item.resolution_hours}h · Escalation: {item.escalation_hours}h</p>
+              </div>
+              <button onClick={() => { setEditing(item); setForm({ name: item.name, urgency: item.urgency ?? "", response_hours: item.response_hours, resolution_hours: item.resolution_hours, escalation_hours: item.escalation_hours, is_default: item.is_default }); }} className="p-2 rounded-lg hover:bg-accent"><Edit size={14} /></button>
+              <button onClick={() => handleDelete(item.id)} className="p-2 rounded-lg hover:bg-accent text-red-400"><Trash2 size={14} /></button>
+            </div>
+          ))}
+        </div>
+      )}
+      {(editing || (!editing && form.name)) && (
+        <div className="rounded-xl border border-border/60 bg-card/50 p-4 space-y-3">
+          <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Policy name" className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm" />
+          <select value={form.urgency} onChange={e => setForm({ ...form, urgency: e.target.value })} className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm">
+            <option value="">All urgencies</option>
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+            <option value="emergency">Emergency</option>
+          </select>
+          <div className="grid grid-cols-3 gap-3">
+            <input type="number" value={form.response_hours} onChange={e => setForm({ ...form, response_hours: parseInt(e.target.value) })} placeholder="Response (h)" className="rounded-lg border border-border bg-card px-3 py-2 text-sm" />
+            <input type="number" value={form.resolution_hours} onChange={e => setForm({ ...form, resolution_hours: parseInt(e.target.value) })} placeholder="Resolution (h)" className="rounded-lg border border-border bg-card px-3 py-2 text-sm" />
+            <input type="number" value={form.escalation_hours} onChange={e => setForm({ ...form, escalation_hours: parseInt(e.target.value) })} placeholder="Escalation (h)" className="rounded-lg border border-border bg-card px-3 py-2 text-sm" />
+          </div>
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" checked={form.is_default} onChange={e => setForm({ ...form, is_default: e.target.checked })} className="rounded border-border" />
+            Set as default policy
+          </label>
+          <div className="flex gap-2">
+            <button onClick={handleSave} className="flex-1 rounded-lg bg-gold px-3 py-2 text-xs font-semibold text-gold-foreground">Save</button>
+            <button onClick={() => { setEditing(null); setForm({ name: "", urgency: "", response_hours: 4, resolution_hours: 24, escalation_hours: 12, is_default: false }); }} className="rounded-lg px-3 py-2 text-xs text-muted-foreground">Cancel</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function BrandingPanel({ session }: { session: Session }) {
+  const [loading, setLoading] = useState(true);
+  const [form, setForm] = useState({ company_name: "", primary_color: "#22c55e", logo_url: "" });
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const res = await fetch("/api/admin/settings", { headers: { Authorization: `Bearer ${session.access_token}` } });
+    if (res.ok) {
+      const json = await res.json() as { settings: AppSetting[] };
+      const map = new Map(json.settings.map((s: AppSetting) => [s.key, s.value]));
+      setForm({
+        company_name: map.get("branding_company_name") ?? "",
+        primary_color: map.get("branding_primary_color") ?? "#22c55e",
+        logo_url: map.get("branding_logo_url") ?? "",
+      });
+    }
+    setLoading(false);
+  }, [session.access_token]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const handleSave = async (key: string, value: string) => {
+    const res = await fetch("/api/admin/settings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+      body: JSON.stringify({ key, value }),
+    });
+    if (res.ok) toast.success("Saved");
+    else toast.error("Failed to save");
+  };
+
+  return (
+    <div className="space-y-4">
+      <h2 className="text-lg font-semibold">Business Branding</h2>
+      {loading ? <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /> : (
+        <div className="rounded-xl border border-border/60 bg-card/50 p-4 space-y-4">
+          <div>
+            <label className="block text-xs font-medium mb-1.5">Company Name</label>
+            <input value={form.company_name} onChange={e => setForm({ ...form, company_name: e.target.value })} onBlur={() => handleSave("branding_company_name", form.company_name)} className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm" placeholder="Your Company Inc." />
+          </div>
+          <div>
+            <label className="block text-xs font-medium mb-1.5">Primary Color</label>
+            <div className="flex gap-3">
+              <input type="color" value={form.primary_color} onChange={e => setForm({ ...form, primary_color: e.target.value })} onBlur={() => handleSave("branding_primary_color", form.primary_color)} className="h-10 w-16 rounded-lg border border-border bg-card" />
+              <input value={form.primary_color} onChange={e => setForm({ ...form, primary_color: e.target.value })} onBlur={() => handleSave("branding_primary_color", form.primary_color)} className="flex-1 rounded-lg border border-border bg-card px-3 py-2 text-sm font-mono" />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-medium mb-1.5">Logo URL</label>
+            <input value={form.logo_url} onChange={e => setForm({ ...form, logo_url: e.target.value })} onBlur={() => handleSave("branding_logo_url", form.logo_url)} className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm" placeholder="https://example.com/logo.png" />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ---------- Settings panel ----------
 
 function SettingsPanel({ session }: { session: Session }) {
@@ -337,7 +574,13 @@ function SettingsPanel({ session }: { session: Session }) {
       </div>
 
       {/* Content */}
-      {loading ? (
+      {activeTab === "categories" ? (
+        <CategoriesPanel session={session} />
+      ) : activeTab === "sla" ? (
+        <SLAPanel session={session} />
+      ) : activeTab === "branding" ? (
+        <BrandingPanel session={session} />
+      ) : loading ? (
         <div className="flex items-center gap-2 text-muted-foreground py-12">
           <Loader2 className="h-5 w-5 animate-spin" />
           <span className="text-sm">Loading settings…</span>

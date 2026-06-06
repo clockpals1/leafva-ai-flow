@@ -32,6 +32,9 @@ import { Route as ApiStaffRouteImport } from './routes/api/staff'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as TrackRouteImport } from './routes/track'
 import { Route as ApiTicketTrackRouteImport } from './routes/api/ticket-track'
+import { Route as SessionTokenRouteImport } from './routes/session.$token'
+import { Route as ApiAdminEntityRouteImport } from './routes/api/admin/entity'
+import { Route as ApiRemoteSessionsRouteImport } from './routes/api/remote-sessions'
 
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
@@ -148,6 +151,21 @@ const ApiTicketTrackRoute = ApiTicketTrackRouteImport.update({
   path: '/api/ticket-track',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SessionTokenRoute = SessionTokenRouteImport.update({
+  id: '/session/$token',
+  path: '/session/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminEntityRoute = ApiAdminEntityRouteImport.update({
+  id: '/api/admin/entity',
+  path: '/api/admin/entity',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiRemoteSessionsRoute = ApiRemoteSessionsRouteImport.update({
+  id: '/api/remote-sessions',
+  path: '/api/remote-sessions',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -173,6 +191,9 @@ export interface FileRoutesByFullPath {
   '/reports': typeof ReportsRoute
   '/track': typeof TrackRoute
   '/api/ticket-track': typeof ApiTicketTrackRoute
+  '/session/$token': typeof SessionTokenRoute
+  '/api/admin/entity': typeof ApiAdminEntityRoute
+  '/api/remote-sessions': typeof ApiRemoteSessionsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -198,6 +219,9 @@ export interface FileRoutesByTo {
   '/reports': typeof ReportsRoute
   '/track': typeof TrackRoute
   '/api/ticket-track': typeof ApiTicketTrackRoute
+  '/session/$token': typeof SessionTokenRoute
+  '/api/admin/entity': typeof ApiAdminEntityRoute
+  '/api/remote-sessions': typeof ApiRemoteSessionsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -224,6 +248,9 @@ export interface FileRoutesById {
   '/reports': typeof ReportsRoute
   '/track': typeof TrackRoute
   '/api/ticket-track': typeof ApiTicketTrackRoute
+  '/session/$token': typeof SessionTokenRoute
+  '/api/admin/entity': typeof ApiAdminEntityRoute
+  '/api/remote-sessions': typeof ApiRemoteSessionsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -251,6 +278,9 @@ export interface FileRouteTypes {
     | '/reports'
     | '/track'
     | '/api/ticket-track'
+    | '/session/$token'
+    | '/api/admin/entity'
+    | '/api/remote-sessions'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -276,6 +306,9 @@ export interface FileRouteTypes {
     | '/reports'
     | '/track'
     | '/api/ticket-track'
+    | '/session/$token'
+    | '/api/admin/entity'
+    | '/api/remote-sessions'
   id:
     | '__root__'
     | '/'
@@ -301,6 +334,9 @@ export interface FileRouteTypes {
     | '/reports'
     | '/track'
     | '/api/ticket-track'
+    | '/session/$token'
+    | '/api/admin/entity'
+    | '/api/remote-sessions'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -327,6 +363,9 @@ export interface RootRouteChildren {
   ReportsRoute: typeof ReportsRoute
   TrackRoute: typeof TrackRoute
   ApiTicketTrackRoute: typeof ApiTicketTrackRoute
+  SessionTokenRoute: typeof SessionTokenRoute
+  ApiAdminEntityRoute: typeof ApiAdminEntityRoute
+  ApiRemoteSessionsRoute: typeof ApiRemoteSessionsRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -463,6 +502,9 @@ const rootRouteChildren: RootRouteChildren = {
   ReportsRoute: ReportsRoute,
   TrackRoute: TrackRoute,
   ApiTicketTrackRoute: ApiTicketTrackRoute,
+  SessionTokenRoute: SessionTokenRoute,
+  ApiAdminEntityRoute: ApiAdminEntityRoute,
+  ApiRemoteSessionsRoute: ApiRemoteSessionsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
