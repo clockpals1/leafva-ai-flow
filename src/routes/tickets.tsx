@@ -467,7 +467,8 @@ function TicketsDashboard() {
     new:      tickets.filter(t => t.status === "new").length,
   };
 
-  const canCreate = staff?.role === "admin" || staff?.role === "manager";
+  // Any authenticated user in this system is staff — RLS/API will enforce further
+  const canCreate = authed === true;
 
   // ── Render ───────────────────────────────────────────────────────────────────
   if (authed === null) {

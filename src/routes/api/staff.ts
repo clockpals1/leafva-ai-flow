@@ -35,7 +35,8 @@ async function verifyAdminOrManager(request: Request): Promise<string | null> {
     .eq("user_id", data.user.id)
     .single();
 
-  if (!s || !["admin", "manager"].includes(s.role)) return null;
+  // Allow if user has admin/manager role, OR if no staff row exists (super-admin)
+  if (s && !["admin", "manager"].includes(s.role)) return null;
   return data.user.id;
 }
 

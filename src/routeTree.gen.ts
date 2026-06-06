@@ -35,6 +35,7 @@ import { Route as ApiTicketTrackRouteImport } from './routes/api/ticket-track'
 import { Route as SessionTokenRouteImport } from './routes/session.$token'
 import { Route as ApiAdminEntityRouteImport } from './routes/api/admin/entity'
 import { Route as ApiRemoteSessionsRouteImport } from './routes/api/remote-sessions'
+import { Route as SettingsRouteImport } from './routes/settings'
 
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
@@ -166,6 +167,11 @@ const ApiRemoteSessionsRoute = ApiRemoteSessionsRouteImport.update({
   path: '/api/remote-sessions',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -222,6 +228,7 @@ export interface FileRoutesByTo {
   '/session/$token': typeof SessionTokenRoute
   '/api/admin/entity': typeof ApiAdminEntityRoute
   '/api/remote-sessions': typeof ApiRemoteSessionsRoute
+  '/settings': typeof SettingsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -251,6 +258,7 @@ export interface FileRoutesById {
   '/session/$token': typeof SessionTokenRoute
   '/api/admin/entity': typeof ApiAdminEntityRoute
   '/api/remote-sessions': typeof ApiRemoteSessionsRoute
+  '/settings': typeof SettingsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -281,6 +289,7 @@ export interface FileRouteTypes {
     | '/session/$token'
     | '/api/admin/entity'
     | '/api/remote-sessions'
+    | '/settings'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -309,6 +318,7 @@ export interface FileRouteTypes {
     | '/session/$token'
     | '/api/admin/entity'
     | '/api/remote-sessions'
+    | '/settings'
   id:
     | '__root__'
     | '/'
@@ -337,6 +347,7 @@ export interface FileRouteTypes {
     | '/session/$token'
     | '/api/admin/entity'
     | '/api/remote-sessions'
+    | '/settings'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -366,6 +377,7 @@ export interface RootRouteChildren {
   SessionTokenRoute: typeof SessionTokenRoute
   ApiAdminEntityRoute: typeof ApiAdminEntityRoute
   ApiRemoteSessionsRoute: typeof ApiRemoteSessionsRoute
+  SettingsRoute: typeof SettingsRoute
 }
 
 declare module '@tanstack/react-router' {

@@ -17,7 +17,8 @@ const LINKS = [
   { to: "/tickets", icon: Ticket,   label: "Service Desk" },
   { to: "/staff",   icon: Users,    label: "Staff" },
   { to: "/reports", icon: BarChart3, label: "Reports" },
-  { to: "/admin",   icon: Settings, label: "Settings" },
+  { to: "/admin",   icon: Settings, label: "Admin" },
+  { to: "/settings", icon: Settings, label: "Settings" },
 ] as const;
 
 const COMING_SOON: { icon: typeof Ticket; label: string }[] = [];

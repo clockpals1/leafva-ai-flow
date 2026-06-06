@@ -109,7 +109,7 @@ function RootShell({ children }: { children: React.ReactNode }) {
   );
 }
 
-const DASHBOARD_PREFIXES = ["/tickets", "/admin", "/staff"];
+const DASHBOARD_PREFIXES = ["/tickets", "/admin", "/staff", "/reports", "/settings"];
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();

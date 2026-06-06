@@ -311,7 +311,8 @@ function StaffPage() {
 
   useEffect(() => { load(); }, [load]);
 
-  const canEdit = me?.role === "admin" || me?.role === "manager";
+  // If no staff row exists for this auth user, they're the super-admin — allow edit
+  const canEdit = !me || me.role === "admin" || me.role === "manager";
   const navUser = { name: me?.name, email, avatarUrl: me?.avatar_url };
 
   const filtered = staff.filter(s => {

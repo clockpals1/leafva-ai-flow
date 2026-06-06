@@ -25,13 +25,9 @@ type AppSetting = {
   description: string | null;
 };
 
-type Tab = "ai" | "email" | "smtp" | "notifications" | "categories" | "sla" | "branding";
+type Tab = "categories" | "sla" | "branding";
 
 const TAB_META: { id: Tab; label: string; icon: LucideIcon }[] = [
-  { id: "ai",            label: "AI",            icon: Bot },
-  { id: "email",         label: "Email / Resend", icon: Mail },
-  { id: "smtp",          label: "SMTP",           icon: Server },
-  { id: "notifications", label: "Notifications",  icon: Bell },
   { id: "categories",    label: "Categories",    icon: Tag },
   { id: "sla",           label: "SLA Policies",  icon: Clock },
   { id: "branding",      label: "Branding",      icon: Palette },
