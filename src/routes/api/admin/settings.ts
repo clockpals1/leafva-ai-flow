@@ -6,6 +6,8 @@ import type { Database } from "@/integrations/supabase/types";
 function adminClient() {
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  console.error("[adminClient] SUPABASE_URL:", url ? "SET" : "MISSING");
+  console.error("[adminClient] SUPABASE_SERVICE_ROLE_KEY:", key ? "SET" : "MISSING");
   if (!url || !key) throw new Error("SUPABASE_SERVICE_ROLE_KEY not configured");
   return createClient<Database>(url, key, {
     auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
@@ -54,12 +56,14 @@ export const Route = createFileRoute("/api/admin/settings")({
 
         try {
           const db = adminClient();
+          console.error("[GET] Querying app_settings...");
           const { data, error } = await db
             .from("app_settings")
             .select("key, value, is_secret, category, label, description, updated_at")
             .order("category")
             .order("key");
 
+          console.error("[GET] Query result:", { error: error?.message, dataCount: data?.length });
           if (error) throw error;
 
           // Mask secret values in the response so they never leave the server
