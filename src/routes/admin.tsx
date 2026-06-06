@@ -119,15 +119,15 @@ function SettingRow({
   setting: AppSetting;
   onSave: (key: string, value: string, token: string) => Promise<void>;
 }) {
-  const [draft, setDraft] = useState(setting.value ?? "");
+  // Secrets: start empty so user just types new value; plain fields: start from saved value
+  const [draft, setDraft] = useState(setting.is_secret ? "" : (setting.value ?? ""));
   const [show, setShow] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [dirty, setDirty] = useState(false);
 
-  const handleChange = (v: string) => {
-    setDraft(v);
-    setDirty(v !== (setting.value ?? ""));
-  };
+  // Secrets are dirty when any non-empty value is entered; plain fields when changed
+  const dirty = setting.is_secret ? draft.trim() !== "" : draft !== (setting.value ?? "");
+
+  const handleChange = (v: string) => { setDraft(v); };
 
   const handleSave = async () => {
     const { data } = await supabase.auth.getSession();
@@ -135,7 +135,7 @@ function SettingRow({
     setSaving(true);
     try {
       await onSave(setting.key, draft, token);
-      setDirty(false);
+      if (setting.is_secret) setDraft(""); // clear after saving so dirty resets
     } finally {
       setSaving(false);
     }
@@ -289,7 +289,11 @@ function SettingsPanel({ session }: { session: Session }) {
     }
     toast.success(`"${key}" saved`);
     setSettings((prev: AppSetting[]) =>
-      prev.map((s: AppSetting) => (s.key === key ? { ...s, value } : s)),
+      prev.map((s: AppSetting) =>
+        s.key === key
+          ? { ...s, value: s.is_secret ? "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022" : value }
+          : s,
+      ),
     );
   };
 

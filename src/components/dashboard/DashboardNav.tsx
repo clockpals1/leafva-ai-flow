@@ -14,14 +14,13 @@ interface DashboardNavProps {
 }
 
 const LINKS = [
-  { to: "/tickets", icon: Ticket, label: "Service Desk" },
-  { to: "/staff",   icon: Users,  label: "Staff" },
+  { to: "/tickets", icon: Ticket,   label: "Service Desk" },
+  { to: "/staff",   icon: Users,    label: "Staff" },
+  { to: "/reports", icon: BarChart3, label: "Reports" },
   { to: "/admin",   icon: Settings, label: "Settings" },
 ] as const;
 
-const COMING_SOON = [
-  { icon: BarChart3, label: "Reports" },
-];
+const COMING_SOON: { icon: typeof Ticket; label: string }[] = [];
 
 export function DashboardNav({ user }: DashboardNavProps) {
   const { pathname } = useLocation();
@@ -68,24 +67,16 @@ export function DashboardNav({ user }: DashboardNavProps) {
           );
         })}
 
-        {/* Coming soon */}
-        <div className="mt-3 pt-3 border-t border-slate-800/40 space-y-0.5">
-          {COMING_SOON.map(({ icon: Icon, label }) => (
-            <div
-              key={label}
-              title={`${label} — coming soon`}
-              className="flex items-center gap-3 rounded-lg px-2.5 py-2.5 text-slate-700 cursor-not-allowed select-none"
-            >
-              <Icon size={17} className="shrink-0" />
-              <span className="hidden lg:flex lg:flex-1 items-center justify-between text-sm font-medium">
-                {label}
-                <span className="text-[9px] uppercase tracking-wider bg-slate-800/80 text-slate-600 px-1.5 py-0.5 rounded">
-                  soon
-                </span>
-              </span>
-            </div>
-          ))}
-        </div>
+        {COMING_SOON.length > 0 && (
+          <div className="mt-3 pt-3 border-t border-slate-800/40 space-y-0.5">
+            {COMING_SOON.map(({ icon: Icon, label }) => (
+              <div key={label} className="flex items-center gap-3 rounded-lg px-2.5 py-2.5 text-slate-700 cursor-not-allowed select-none">
+                <Icon size={17} className="shrink-0" />
+                <span className="hidden lg:block text-sm font-medium">{label}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </nav>
 
       {/* ── User + logout ── */}

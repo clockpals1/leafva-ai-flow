@@ -29,6 +29,9 @@ import { Route as ApiAiReplyRouteImport } from './routes/api/ai/reply'
 import { Route as StaffRouteImport } from './routes/staff'
 import { Route as ApiEmailSendRouteImport } from './routes/api/email/send'
 import { Route as ApiStaffRouteImport } from './routes/api/staff'
+import { Route as ReportsRouteImport } from './routes/reports'
+import { Route as TrackRouteImport } from './routes/track'
+import { Route as ApiTicketTrackRouteImport } from './routes/api/ticket-track'
 
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
@@ -130,6 +133,21 @@ const ApiStaffRoute = ApiStaffRouteImport.update({
   path: '/api/staff',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ReportsRoute = ReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TrackRoute = TrackRouteImport.update({
+  id: '/track',
+  path: '/track',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiTicketTrackRoute = ApiTicketTrackRouteImport.update({
+  id: '/api/ticket-track',
+  path: '/api/ticket-track',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -152,6 +170,9 @@ export interface FileRoutesByFullPath {
   '/staff': typeof StaffRoute
   '/api/email/send': typeof ApiEmailSendRoute
   '/api/staff': typeof ApiStaffRoute
+  '/reports': typeof ReportsRoute
+  '/track': typeof TrackRoute
+  '/api/ticket-track': typeof ApiTicketTrackRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -174,6 +195,9 @@ export interface FileRoutesByTo {
   '/staff': typeof StaffRoute
   '/api/email/send': typeof ApiEmailSendRoute
   '/api/staff': typeof ApiStaffRoute
+  '/reports': typeof ReportsRoute
+  '/track': typeof TrackRoute
+  '/api/ticket-track': typeof ApiTicketTrackRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -197,6 +221,9 @@ export interface FileRoutesById {
   '/staff': typeof StaffRoute
   '/api/email/send': typeof ApiEmailSendRoute
   '/api/staff': typeof ApiStaffRoute
+  '/reports': typeof ReportsRoute
+  '/track': typeof TrackRoute
+  '/api/ticket-track': typeof ApiTicketTrackRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -221,6 +248,9 @@ export interface FileRouteTypes {
     | '/staff'
     | '/api/email/send'
     | '/api/staff'
+    | '/reports'
+    | '/track'
+    | '/api/ticket-track'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -243,6 +273,9 @@ export interface FileRouteTypes {
     | '/staff'
     | '/api/email/send'
     | '/api/staff'
+    | '/reports'
+    | '/track'
+    | '/api/ticket-track'
   id:
     | '__root__'
     | '/'
@@ -265,6 +298,9 @@ export interface FileRouteTypes {
     | '/staff'
     | '/api/email/send'
     | '/api/staff'
+    | '/reports'
+    | '/track'
+    | '/api/ticket-track'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -288,6 +324,9 @@ export interface RootRouteChildren {
   StaffRoute: typeof StaffRoute
   ApiEmailSendRoute: typeof ApiEmailSendRoute
   ApiStaffRoute: typeof ApiStaffRoute
+  ReportsRoute: typeof ReportsRoute
+  TrackRoute: typeof TrackRoute
+  ApiTicketTrackRoute: typeof ApiTicketTrackRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -421,6 +460,9 @@ const rootRouteChildren: RootRouteChildren = {
   StaffRoute: StaffRoute,
   ApiEmailSendRoute: ApiEmailSendRoute,
   ApiStaffRoute: ApiStaffRoute,
+  ReportsRoute: ReportsRoute,
+  TrackRoute: TrackRoute,
+  ApiTicketTrackRoute: ApiTicketTrackRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
