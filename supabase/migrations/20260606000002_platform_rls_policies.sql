@@ -94,9 +94,13 @@ CREATE POLICY "sla: admin can write"
 
 
 -- ── TICKETS ──────────────────────────────────────────────────────────────────
--- INSERT: public (existing) — keeps AI-assistant intake working
+-- INSERT: public (authenticated) — keeps AI-assistant intake working
 -- SELECT: admin/manager see all; technician/subcontractor see only assigned tickets
 -- UPDATE: admin/manager all; technician only assigned tickets
+
+CREATE POLICY "tickets: public can insert"
+  ON public.tickets FOR INSERT TO authenticated
+  WITH CHECK (true);
 
 CREATE POLICY "tickets: admin/manager read all"
   ON public.tickets FOR SELECT TO authenticated
@@ -145,6 +149,10 @@ CREATE POLICY "assignments: admin/manager can insert"
   ON public.ticket_assignments FOR INSERT TO authenticated
   WITH CHECK (public.is_admin_or_manager());
 
+CREATE POLICY "assignments: public can insert"
+  ON public.ticket_assignments FOR INSERT TO authenticated
+  WITH CHECK (true);
+
 
 -- ── TICKET MESSAGES ──────────────────────────────────────────────────────────
 -- Internal notes: only admin/manager/assigned technician can read
@@ -185,6 +193,10 @@ CREATE POLICY "messages: staff can insert on accessible ticket"
     OR public.is_assigned_to_ticket(ticket_id)
   );
 
+CREATE POLICY "messages: public can insert"
+  ON public.ticket_messages FOR INSERT TO authenticated
+  WITH CHECK (true);
+
 
 -- ── TICKET FILES ─────────────────────────────────────────────────────────────
 
@@ -205,6 +217,10 @@ CREATE POLICY "files: staff upload on accessible ticket"
     public.is_admin_or_manager()
     OR public.is_assigned_to_ticket(ticket_id)
   );
+
+CREATE POLICY "files: public can insert"
+  ON public.ticket_files FOR INSERT TO authenticated
+  WITH CHECK (true);
 
 
 -- ── TICKET HISTORY ───────────────────────────────────────────────────────────
