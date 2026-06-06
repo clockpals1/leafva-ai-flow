@@ -44,6 +44,7 @@ function SettingsPage() {
   }, [navigate]);
 
   const fetchSettings = useCallback(async () => {
+    if (!session?.access_token) return;
     setLoading(true);
     try {
       const res = await fetch("/api/admin/settings", {
@@ -58,16 +59,20 @@ function SettingsPage() {
     } finally {
       setLoading(false);
     }
-  }, [session.access_token]);
+  }, [session?.access_token]);
 
   useEffect(() => { if (session) fetchSettings(); }, [session, fetchSettings]);
 
   const saveSettings = async () => {
+    if (!session?.access_token) {
+      toast.error("Not authenticated");
+      return;
+    }
     setSaving(true);
     try {
       const res = await fetch("/api/admin/settings", {
         method: "POST",
-        headers: { 
+        headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${session.access_token}`,
         },
