@@ -20,8 +20,20 @@ async function verifyAuth(request: Request): Promise<boolean> {
   const authClient = createClient(url, anonKey, {
     auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
   });
-  const { error } = await authClient.auth.getUser(token);
-  return !error;
+  const { data, error } = await authClient.auth.getUser(token);
+  if (error || !data.user) return false;
+
+  // Check if user has admin/manager role, or is super-admin (no staff row)
+  const db = adminClient();
+  const { data: staff } = await db
+    .from("staff")
+    .select("role")
+    .eq("user_id", data.user.id)
+    .single();
+
+  // Allow if user has admin/manager role, OR if no staff row exists (super-admin)
+  if (staff && !["admin", "manager"].includes(staff.role)) return false;
+  return true;
 }
 
 export const Route = createFileRoute("/api/admin/entity")({

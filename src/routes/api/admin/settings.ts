@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 
-/** Verify the Bearer token and return the Supabase user, or null. */
+/** Verify the Bearer token and return the Supabase user ID, or null. */
 async function verifyAuth(request: Request): Promise<string | null> {
   const authHeader = request.headers.get("authorization") ?? "";
   if (!authHeader.startsWith("Bearer ")) return null;
@@ -18,6 +18,17 @@ async function verifyAuth(request: Request): Promise<string | null> {
   });
   const { data, error } = await client.auth.getUser(token);
   if (error || !data.user) return null;
+
+  // Check if user has admin/manager role, or is super-admin (no staff row)
+  const db = adminClient();
+  const { data: staff } = await db
+    .from("staff")
+    .select("role")
+    .eq("user_id", data.user.id)
+    .single();
+
+  // Allow if user has admin/manager role, OR if no staff row exists (super-admin)
+  if (staff && !["admin", "manager"].includes(staff.role)) return null;
   return data.user.id;
 }
 
