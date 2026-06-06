@@ -73,7 +73,7 @@ export const Route = createFileRoute("/api/admin/settings")({
         }
       },
 
-      /** POST /api/admin/settings — upsert one setting (auth required) */
+      /** POST /api/admin/settings — upsert settings (auth required) */
       POST: async ({ request }) => {
         const userId = await verifyAuth(request);
         if (!userId) {
@@ -83,9 +83,9 @@ export const Route = createFileRoute("/api/admin/settings")({
           });
         }
 
-        let body: { key?: string; value?: string };
+        let body: { settings?: Array<{ id: string; key: string; value: string; is_secret: boolean }> };
         try {
-          body = (await request.json()) as { key?: string; value?: string };
+          body = (await request.json()) as { settings?: Array<{ id: string; key: string; value: string; is_secret: boolean }> };
         } catch {
           return new Response(JSON.stringify({ error: "Invalid JSON" }), {
             status: 400,
@@ -93,36 +93,35 @@ export const Route = createFileRoute("/api/admin/settings")({
           });
         }
 
-        const { key, value } = body;
-        if (!key || typeof key !== "string" || key.length > 100) {
-          return new Response(JSON.stringify({ error: "Invalid key" }), {
+        const { settings } = body;
+        if (!settings || !Array.isArray(settings)) {
+          return new Response(JSON.stringify({ error: "Invalid settings array" }), {
             status: 400,
-            headers: { "Content-Type": "application/json" },
-          });
-        }
-        if (typeof value !== "string" || value.length > 10000) {
-          return new Response(JSON.stringify({ error: "Invalid value" }), {
-            status: 400,
-            headers: { "Content-Type": "application/json" },
-          });
-        }
-
-        // Don't allow saving a masked placeholder as the real value
-        if (value === "••••••••") {
-          return new Response(JSON.stringify({ ok: true, note: "placeholder not saved" }), {
-            status: 200,
             headers: { "Content-Type": "application/json" },
           });
         }
 
         try {
           const db = adminClient();
-          const { error } = await db
-            .from("app_settings")
-            .update({ value, updated_by: userId })
-            .eq("key", key);
 
-          if (error) throw error;
+          // Update each setting, skipping masked placeholders
+          for (const setting of settings) {
+            if (setting.is_secret && setting.value === "••••••••") {
+              continue; // Skip masked secret values
+            }
+            if (typeof setting.value !== "string" || setting.value.length > 10000) {
+              continue; // Skip invalid values
+            }
+
+            const { error } = await db
+              .from("app_settings")
+              .update({ value: setting.value, updated_by: userId })
+              .eq("key", setting.key);
+
+            if (error) {
+              console.error(`Failed to update setting ${setting.key}:`, error);
+            }
+          }
 
           return new Response(JSON.stringify({ ok: true }), {
             status: 200,
@@ -130,7 +129,7 @@ export const Route = createFileRoute("/api/admin/settings")({
           });
         } catch (err) {
           console.error("admin settings POST error", err);
-          return new Response(JSON.stringify({ error: "Could not save setting" }), {
+          return new Response(JSON.stringify({ error: "Could not save settings" }), {
             status: 500,
             headers: { "Content-Type": "application/json" },
           });

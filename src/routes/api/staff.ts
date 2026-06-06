@@ -85,23 +85,46 @@ export const Route = createFileRoute("/api/staff")({
 
         const db = adminClient();
 
-        // Invite the user — creates auth.users entry and sends invitation email
-        const { data: invite, error: inviteErr } = await db.auth.admin.inviteUserByEmail(
-          email.trim().toLowerCase(),
-          { data: { full_name: name.trim() } },
-        );
-        if (inviteErr) {
-          return new Response(JSON.stringify({ error: inviteErr.message }), {
-            status: 400,
-            headers: { "Content-Type": "application/json" },
+        let userId: string;
+        let invited = false;
+
+        if (role === "subcontractor") {
+          // Subcontractors get invitation email
+          const { data: invite, error: inviteErr } = await db.auth.admin.inviteUserByEmail(
+            email.trim().toLowerCase(),
+            { data: { full_name: name.trim() } },
+          );
+          if (inviteErr) {
+            return new Response(JSON.stringify({ error: inviteErr.message }), {
+              status: 400,
+              headers: { "Content-Type": "application/json" },
+            });
+          }
+          userId = invite.user.id;
+          invited = true;
+        } else {
+          // Internal staff: create user directly with temporary password
+          const tempPassword = Math.random().toString(36).slice(-12);
+          const { data: user, error: userErr } = await db.auth.admin.createUser({
+            email: email.trim().toLowerCase(),
+            password: tempPassword,
+            email_confirm: true,
+            user_metadata: { full_name: name.trim() },
           });
+          if (userErr) {
+            return new Response(JSON.stringify({ error: userErr.message }), {
+              status: 400,
+              headers: { "Content-Type": "application/json" },
+            });
+          }
+          userId = user.user.id;
         }
 
-        // Create the staff profile linked to the invited user
+        // Create the staff profile linked to the user
         const { data: staffRow, error: staffErr } = await db
           .from("staff")
           .insert({
-            user_id: invite.user.id,
+            user_id: userId,
             name: name.trim(),
             email: email.trim().toLowerCase(),
             phone: phone?.trim() || null,
@@ -119,7 +142,7 @@ export const Route = createFileRoute("/api/staff")({
           });
         }
 
-        return new Response(JSON.stringify({ staff: staffRow, invited: true }), {
+        return new Response(JSON.stringify({ staff: staffRow, invited }), {
           status: 201,
           headers: { "Content-Type": "application/json" },
         });
