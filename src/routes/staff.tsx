@@ -91,16 +91,23 @@ function CreateModal({ onClose, onCreated }: { onClose: () => void; onCreated: (
     if (!name.trim() || !email.trim()) { setErr("Name and email are required."); return; }
     setBusy(true); setErr("");
     const skillArr = skills.split(",").map(s => s.trim()).filter(Boolean);
-    const { error } = await supabase.from("staff").insert({
-      name: name.trim(),
-      email: email.trim().toLowerCase(),
-      phone: phone.trim() || null,
-      role,
-      skills: skillArr,
-      max_tickets: parseInt(maxT) || 10,
-    } as never);
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData.session?.access_token ?? "";
+    const res = await fetch("/api/staff", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
+        phone: phone.trim() || undefined,
+        role,
+        skills: skillArr,
+        max_tickets: parseInt(maxT) || 10,
+      }),
+    });
     setBusy(false);
-    if (error) { setErr(error.message); return; }
+    const j = await res.json().catch(() => ({}));
+    if (!res.ok) { setErr((j as { error?: string }).error ?? "Failed to invite staff member"); return; }
     onCreated();
   };
 
@@ -108,11 +115,14 @@ function CreateModal({ onClose, onCreated }: { onClose: () => void; onCreated: (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm">
       <div className="w-full max-w-md rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl">
         <div className="flex items-center justify-between border-b border-slate-800 px-6 py-4">
-          <h2 className="text-sm font-semibold text-slate-100">Add Staff Member</h2>
+          <h2 className="text-sm font-semibold text-slate-100">Invite Staff Member</h2>
           <button onClick={onClose} className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-800 hover:text-slate-300"><X size={16} /></button>
         </div>
         <div className="space-y-4 p-6">
           {err && <p className="rounded-lg bg-red-500/10 px-3 py-2 text-xs text-red-400">{err}</p>}
+          <p className="rounded-lg bg-slate-800/60 border border-slate-700/60 px-3 py-2 text-xs text-slate-400">
+            An invitation email will be sent to the staff member with a link to set their password.
+          </p>
           <div>
             <label className="mb-1.5 block text-[11px] uppercase tracking-wide text-slate-500">Full Name *</label>
             <input value={name} onChange={e => setName(e.target.value)} placeholder="Jane Smith"
@@ -157,7 +167,7 @@ function CreateModal({ onClose, onCreated }: { onClose: () => void; onCreated: (
           <button onClick={submit} disabled={busy || !name.trim() || !email.trim()}
             className="flex items-center gap-2 rounded-lg bg-green-500 px-4 py-2 text-xs font-semibold text-slate-950 transition hover:bg-green-400 disabled:opacity-40">
             {busy ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />}
-            Add Member
+            Send Invite
           </button>
         </div>
       </div>

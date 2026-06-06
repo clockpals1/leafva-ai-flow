@@ -5,7 +5,7 @@ import {
   Search, Filter, RefreshCw, LogOut, Ticket, AlertTriangle,
   Clock, CheckCircle2, ChevronDown, User, Zap, Shield,
   Wifi, Monitor, Code2, FolderOpen, PhoneCall, MoreHorizontal,
-  Circle, ArrowUpDown, Bell,
+  Circle, ArrowUpDown, Bell, Plus, X, Loader2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
@@ -154,6 +154,158 @@ function StaffAvatar({ name, avatarUrl }: { name: string; avatarUrl: string | nu
   );
 }
 
+// ── Create Ticket Modal ──────────────────────────────────────────────────────
+
+type TicketCategory = { name: string; slug: string };
+
+function CreateTicketModal({
+  onClose,
+  onCreated,
+}: {
+  onClose: () => void;
+  onCreated: (ticketId: string) => void;
+}) {
+  const [name, setName]           = useState("");
+  const [email, setEmail]         = useState("");
+  const [phone, setPhone]         = useState("");
+  const [company, setCompany]     = useState("");
+  const [category, setCategory]   = useState("");
+  const [urgency, setUrgency]     = useState("medium");
+  const [priority, setPriority]   = useState("standard");
+  const [summary, setSummary]     = useState("");
+  const [details, setDetails]     = useState("");
+  const [assignedId, setAssignedId] = useState("");
+  const [staffList, setStaffList] = useState<Pick<StaffRow, "id" | "name" | "role">[]>([]);
+  const [categories, setCategories] = useState<TicketCategory[]>([]);
+  const [busy, setBusy]           = useState(false);
+  const [err, setErr]             = useState("");
+
+  useEffect(() => {
+    supabase.from("ticket_categories").select("name, slug").eq("is_active", true).order("sort_order")
+      .then(({ data }) => setCategories((data ?? []) as TicketCategory[]));
+    supabase.from("staff").select("id, name, role").eq("is_available", true).order("name")
+      .then(({ data }) => setStaffList((data ?? []) as Pick<StaffRow, "id" | "name" | "role">[]));
+  }, []);
+
+  const submit = async () => {
+    if (!name.trim() || !email.trim() || !summary.trim()) {
+      setErr("Name, email and summary are required."); return;
+    }
+    setBusy(true); setErr("");
+    const { data, error } = await supabase
+      .from("tickets")
+      .insert({
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
+        phone: phone.trim() || null,
+        company: company.trim() || null,
+        category: category || null,
+        urgency: urgency as never,
+        priority: priority as never,
+        summary: summary.trim(),
+        details: details.trim() || null,
+        source: "manual",
+        assigned_staff_id: assignedId || null,
+      } as never)
+      .select("id, reference")
+      .single();
+    setBusy(false);
+    if (error) { setErr(error.message); return; }
+    onCreated(data.id);
+  };
+
+  const fieldCls = "w-full rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-none focus:border-green-500/40 focus:ring-1 focus:ring-green-500/15";
+  const labelCls = "mb-1.5 block text-[11px] uppercase tracking-wide text-slate-500";
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
+      <div className="w-full max-w-2xl rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+        <div className="flex items-center justify-between border-b border-slate-800 px-6 py-4 shrink-0">
+          <h2 className="text-sm font-semibold text-slate-100">Create Ticket</h2>
+          <button onClick={onClose} className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-800 hover:text-slate-300"><X size={16} /></button>
+        </div>
+
+        <div className="overflow-y-auto flex-1 p-6 space-y-6">
+          {err && <p className="rounded-lg bg-red-500/10 px-3 py-2 text-xs text-red-400">{err}</p>}
+
+          {/* Customer */}
+          <div>
+            <p className="mb-3 text-[10px] uppercase tracking-widest text-slate-600 font-semibold">Customer</p>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div><label className={labelCls}>Full Name *</label>
+                <input value={name} onChange={e => setName(e.target.value)} placeholder="Jane Smith" className={fieldCls} /></div>
+              <div><label className={labelCls}>Email *</label>
+                <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="jane@example.com" className={fieldCls} /></div>
+              <div><label className={labelCls}>Phone</label>
+                <input value={phone} onChange={e => setPhone(e.target.value)} placeholder="+1 416 000 0000" className={fieldCls} /></div>
+              <div><label className={labelCls}>Company</label>
+                <input value={company} onChange={e => setCompany(e.target.value)} placeholder="Acme Corp" className={fieldCls} /></div>
+            </div>
+          </div>
+
+          {/* Classification */}
+          <div>
+            <p className="mb-3 text-[10px] uppercase tracking-widest text-slate-600 font-semibold">Classification</p>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div><label className={labelCls}>Category</label>
+                <select value={category} onChange={e => setCategory(e.target.value)} className={`${fieldCls} cursor-pointer`}>
+                  <option value="">— None —</option>
+                  {categories.map(c => <option key={c.slug} value={c.name}>{c.name}</option>)}
+                </select></div>
+              <div><label className={labelCls}>Urgency</label>
+                <select value={urgency} onChange={e => setUrgency(e.target.value)} className={`${fieldCls} cursor-pointer`}>
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                  <option value="emergency">Emergency</option>
+                </select></div>
+              <div><label className={labelCls}>Priority</label>
+                <select value={priority} onChange={e => setPriority(e.target.value)} className={`${fieldCls} cursor-pointer`}>
+                  <option value="routine">Routine</option>
+                  <option value="standard">Standard</option>
+                  <option value="high">High</option>
+                  <option value="critical">Critical</option>
+                </select></div>
+            </div>
+          </div>
+
+          {/* Issue */}
+          <div>
+            <p className="mb-3 text-[10px] uppercase tracking-widest text-slate-600 font-semibold">Issue</p>
+            <div className="space-y-3">
+              <div><label className={labelCls}>Summary *</label>
+                <input value={summary} onChange={e => setSummary(e.target.value)} placeholder="Brief one-line description" className={fieldCls} /></div>
+              <div><label className={labelCls}>Details</label>
+                <textarea rows={4} value={details} onChange={e => setDetails(e.target.value)}
+                  placeholder="Full description, steps to reproduce, environment info…"
+                  className={`${fieldCls} resize-y`} /></div>
+            </div>
+          </div>
+
+          {/* Assignment */}
+          <div>
+            <p className="mb-3 text-[10px] uppercase tracking-widest text-slate-600 font-semibold">Assignment</p>
+            <div><label className={labelCls}>Assign to Staff</label>
+              <select value={assignedId} onChange={e => setAssignedId(e.target.value)} className={`${fieldCls} cursor-pointer`}>
+                <option value="">— Unassigned —</option>
+                {staffList.map(s => <option key={s.id} value={s.id}>{s.name} · {s.role}</option>)}
+              </select></div>
+          </div>
+        </div>
+
+        <div className="flex justify-end gap-3 border-t border-slate-800 px-6 py-4 shrink-0">
+          <button onClick={onClose} className="rounded-lg px-4 py-2 text-xs font-medium text-slate-500 transition hover:text-slate-300">Cancel</button>
+          <button onClick={submit} disabled={busy || !name.trim() || !email.trim() || !summary.trim()}
+            className="flex items-center gap-2 rounded-lg bg-green-500 px-4 py-2 text-xs font-semibold text-slate-950 transition hover:bg-green-400 disabled:opacity-40">
+            {busy ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />}
+            Create Ticket
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Auth Gate ────────────────────────────────────────────────────────────────
 
 function LoginGate({ onLogin }: { onLogin: () => void }) {
@@ -228,6 +380,7 @@ function TicketsDashboard() {
   const [catFilter, setCatFilter]   = useState("all");
   const [urgFilter, setUrgFilter]   = useState("all");
   const [sortField, setSortField]   = useState<"created_at" | "urgency" | "status">("created_at");
+  const [creating, setCreating]     = useState(false);
 
   // ── Auth check ──────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -314,6 +467,8 @@ function TicketsDashboard() {
     new:      tickets.filter(t => t.status === "new").length,
   };
 
+  const canCreate = staff?.role === "admin" || staff?.role === "manager";
+
   // ── Render ───────────────────────────────────────────────────────────────────
   if (authed === null) {
     return <div className="flex min-h-screen items-center justify-center bg-slate-950"><div className="h-6 w-6 animate-spin rounded-full border-2 border-green-400 border-t-transparent" /></div>;
@@ -333,6 +488,14 @@ function TicketsDashboard() {
           {staff && <span className="ml-2 text-[11px] font-normal capitalize text-slate-500">· {staff.role}</span>}
         </h1>
         <div className="flex items-center gap-2">
+          {canCreate && (
+            <button
+              onClick={() => setCreating(true)}
+              className="flex items-center gap-1.5 rounded-lg bg-green-500 px-3 py-1.5 text-xs font-semibold text-slate-950 transition hover:bg-green-400"
+            >
+              <Plus size={13} /> New Ticket
+            </button>
+          )}
           <button onClick={fetchTickets} className="rounded-lg p-1.5 text-slate-500 transition hover:bg-slate-800 hover:text-slate-300" title="Refresh">
             <RefreshCw size={15} />
           </button>
@@ -570,6 +733,13 @@ function TicketsDashboard() {
         )}
       </div>
       </div>
+
+      {creating && (
+        <CreateTicketModal
+          onClose={() => setCreating(false)}
+          onCreated={(id) => { setCreating(false); navigate({ to: "/tickets/$ticketId", params: { ticketId: id } }); }}
+        />
+      )}
     </div>
   );
 }
