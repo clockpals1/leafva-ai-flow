@@ -21,11 +21,11 @@ async function verifyAuth(request: Request): Promise<string | null> {
 
   // Check if user has admin/manager role, or is super-admin (no staff row)
   const db = adminClient();
-  const { data: staff } = await db
+  const { data: staff, error: staffError } = await db
     .from("staff")
     .select("role")
     .eq("user_id", data.user.id)
-    .single();
+    .maybeSingle(); // Use maybeSingle to return null instead of error if no row
 
   // Allow if user has admin/manager role, OR if no staff row exists (super-admin)
   if (staff && !["admin", "manager"].includes(staff.role)) return null;

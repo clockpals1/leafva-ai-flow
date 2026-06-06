@@ -29,7 +29,7 @@ async function verifyAuth(request: Request): Promise<boolean> {
     .from("staff")
     .select("role")
     .eq("user_id", data.user.id)
-    .single();
+    .maybeSingle(); // Use maybeSingle to return null instead of error if no row
 
   // Allow if user has admin/manager role, OR if no staff row exists (super-admin)
   if (staff && !["admin", "manager"].includes(staff.role)) return false;
