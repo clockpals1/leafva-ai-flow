@@ -18,22 +18,19 @@ async function verifyAdminOrManager(request: Request): Promise<string | null> {
   const authHeader = request.headers.get("authorization") ?? "";
   if (!authHeader.startsWith("Bearer ")) return null;
   const token = authHeader.slice(7).trim();
-  const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_PUBLISHABLE_KEY;
-  if (!url || !key) return null;
+  if (!token) return null;
 
-  const anonClient = createClient<Database>(url, key, {
-    auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
-  });
-  const { data, error } = await anonClient.auth.getUser(token);
+  // Verify the token using the service-role client so it never depends on the
+  // publishable key being present on the server (a common cause of 401s).
+  const db = adminClient();
+  const { data, error } = await db.auth.getUser(token);
   if (error || !data.user) return null;
 
-  const db = adminClient();
   const { data: s } = await db
     .from("staff")
     .select("role")
     .eq("user_id", data.user.id)
-    .single();
+    .maybeSingle();
 
   // Allow if user has admin/manager role, OR if no staff row exists (super-admin)
   if (s && !["admin", "manager"].includes(s.role)) return null;

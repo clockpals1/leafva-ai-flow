@@ -180,7 +180,7 @@ function ReportsDashboard() {
     supabase.auth.getSession().then(({ data }) => {
       setUserEmail(data.session?.user.email ?? null);
       if (data.session?.user.id) {
-        supabase.from("staff").select("*").eq("user_id", data.session.user.id).single()
+        supabase.from("staff").select("*").eq("user_id", data.session.user.id).maybeSingle()
           .then(({ data: s }) => setStaffRow(s));
       }
     });

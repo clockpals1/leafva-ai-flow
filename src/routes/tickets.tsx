@@ -402,7 +402,7 @@ function TicketsDashboard() {
     if (!authed) return;
     supabase.auth.getUser().then(({ data }) => {
       if (!data.user) return;
-      supabase.from("staff").select("*").eq("user_id", data.user.id).single().then(({ data: s }) => {
+      supabase.from("staff").select("*").eq("user_id", data.user.id).maybeSingle().then(({ data: s }) => {
         setStaff(s ?? null);
       });
     });

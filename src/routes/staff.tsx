@@ -298,7 +298,7 @@ function StaffPage() {
     supabase.auth.getSession().then(({ data }) => {
       if (!data.session) { navigate({ to: "/tickets" }); return; }
       setEmail(data.session.user.email ?? null);
-      supabase.from("staff").select("*").eq("user_id", data.session.user.id).single()
+      supabase.from("staff").select("*").eq("user_id", data.session.user.id).maybeSingle()
         .then(({ data: s }) => setMe(s ?? null));
     });
   }, [navigate]);
